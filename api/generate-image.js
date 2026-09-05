@@ -454,29 +454,28 @@ export default async function handler(
       signed GET URL을 발급합니다.
     */
 
-    const token =
-      await issueSignedToken({
-        operations: ["get"]
-      });
+const signedValidUntil =
+  Date.now() + 60 * 60 * 1000;
 
-    const {
-      presignedUrl
-    } = await presignUrl(
-      token,
-      {
-        pathname: blob.pathname,
-        operation: "get",
+const token = await issueSignedToken({
+  pathname: blob.pathname,
+  operations: ["get"],
+  validUntil: signedValidUntil
+});
 
-        // 1시간 동안 사용 가능
-        validUntil:
-          Date.now() +
-          60 * 60 * 1000
-      }
-    );
+const { presignedUrl } = await presignUrl(
+  token,
+  {
+    pathname: blob.pathname,
+    operation: "get",
+    validUntil: signedValidUntil
+  }
+);
 
-    console.log(
-      "SIGNED IMAGE URL CREATED"
-    );
+console.log(
+  "SIGNED IMAGE URL:",
+  presignedUrl
+);
 
     /*
       Canva에는 signed URL을 반환.
