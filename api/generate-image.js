@@ -116,9 +116,15 @@ No text inside the image.
   imageBase64?.length || 0
 );
     
-    return res.status(200).json({
-      imageData: `data:image/png;base64,${imageBase64}`,
-    });
+   const imageBuffer = Buffer.from(imageBase64, "base64");
+
+console.log("IMAGE BUFFER SIZE:", imageBuffer.length);
+
+res.setHeader("Content-Type", "image/png");
+res.setHeader("Content-Length", imageBuffer.length);
+res.setHeader("Cache-Control", "no-store");
+
+return res.status(200).send(imageBuffer);
   } catch (error) {
     console.error(
       "IMAGE GENERATION ERROR:",
