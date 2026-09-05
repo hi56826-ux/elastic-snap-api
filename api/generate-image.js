@@ -39,7 +39,7 @@ function sanitizeWho(who) {
       "a fully clothed person safely playing with a dog outdoors"
   };
 
-  return map[who] || `a fully clothed person in a safe supervised setting`;
+  return map[who] || "a fully clothed person in a safe supervised setting";
 }
 
 function getElasticObjectGuide(item) {
@@ -92,8 +92,10 @@ function getElasticObjectGuide(item) {
       "Show the air cushion visibly compressed under pressure."
   };
 
-  return guides[item] || 
-    "The selected elastic object must be clearly visible and its deformation must be physically realistic.";
+  return (
+    guides[item] ||
+    "The selected elastic object must be clearly visible and its deformation must be physically realistic."
+  );
 }
 
 function buildPrimaryPrompt({
@@ -201,7 +203,7 @@ function buildSafeRetryPrompt({
   return `
 Create one photorealistic educational science photograph.
 
-Show one fully clothed student or adult safely demonstrating elasticity with the following object:
+Show one fully clothed student or adult safely demonstrating elasticity.
 
 ELASTIC OBJECT:
 ${elasticItem}
@@ -221,7 +223,7 @@ ${photoStyle}
 REQUEST ID:
 ${requestId || Date.now()}
 
-This is a safe, supervised, ordinary science-learning scene.
+This is a safe, supervised science-learning scene.
 
 Focus mainly on the elastic object, not the person.
 
@@ -229,7 +231,7 @@ ${objectGuide}
 
 The elastic object must be clearly visible.
 The deformation must be realistic and easy to recognize.
-Use a simple, safe composition.
+
 Use natural lighting and professional photography.
 
 No danger.
@@ -244,7 +246,11 @@ No exaggerated deformation.
 `;
 }
 
-async function generateImageWithSafetyRetry(client, primaryPrompt, safePrompt) {
+async function generateImageWithSafetyRetry(
+  client,
+  primaryPrompt,
+  safePrompt
+) {
   try {
     console.log("Trying primary image prompt");
 
@@ -257,7 +263,11 @@ async function generateImageWithSafetyRetry(client, primaryPrompt, safePrompt) {
     const status = error?.status;
     const message = String(error?.message || "");
 
-    console.error("PRIMARY IMAGE ERROR:", status, message);
+    console.error(
+      "PRIMARY IMAGE ERROR:",
+      status,
+      message
+    );
 
     const looksLikeSafetyRejection =
       status === 400 &&
@@ -270,7 +280,9 @@ async function generateImageWithSafetyRetry(client, primaryPrompt, safePrompt) {
       throw error;
     }
 
-    console.log("Safety rejection detected. Retrying with simplified safe prompt.");
+    console.log(
+      "Safety rejection detected. Retrying with simplified safe prompt."
+    );
 
     return await client.images.generate({
       model: "gpt-image-2",
@@ -281,9 +293,20 @@ async function generateImageWithSafetyRetry(client, primaryPrompt, safePrompt) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader(
+    "Access-Control-Allow-Origin",
+    "*"
+  );
+
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "POST, OPTIONS"
+  );
+
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type"
+  );
 
   if (req.method === "OPTIONS") {
     res.statusCode = 204;
@@ -299,8 +322,6 @@ export default async function handler(req, res) {
 
   try {
     if (!process.env.OPENAI_API_KEY) {
-      console.error("OPENAI_API_KEY is missing");
-
       return res.status(500).json({
         error: "OPENAI_API_KEY is not configured"
       });
@@ -342,37 +363,41 @@ export default async function handler(req, res) {
       });
     }
 
-    const primaryPrompt = buildPrimaryPrompt({
-      who,
-      elasticItem,
-      action,
-      place,
-      moment,
-      photoStyle,
-      requestId
-    });
+    const primaryPrompt =
+      buildPrimaryPrompt({
+        who,
+        elasticItem,
+        action,
+        place,
+        moment,
+        photoStyle,
+        requestId
+      });
 
-    const safePrompt = buildSafeRetryPrompt({
-      elasticItem,
-      action,
-      place,
-      moment,
-      photoStyle,
-      requestId
-    });
+    const safePrompt =
+      buildSafeRetryPrompt({
+        elasticItem,
+        action,
+        place,
+        moment,
+        photoStyle,
+        requestId
+      });
 
-    const result = await generateImageWithSafetyRetry(
-      client,
-      primaryPrompt,
-      safePrompt
-    );
+    const result =
+      await generateImageWithSafetyRetry(
+        client,
+        primaryPrompt,
+        safePrompt
+      );
 
-    const imageBase64 = result.data?.[0]?.b64_json;
+    const imageBase64 =
+      result.data?.[0]?.b64_json;
 
     if (!imageBase64) {
-      console.error("No b64_json in response");
-
-      throw new Error("No image data returned");
+      throw new Error(
+        "No image data returned"
+      );
     }
 
     console.log(
@@ -390,25 +415,48 @@ export default async function handler(req, res) {
       imageBuffer.length
     );
 
-    res.statusCode = 200;
+    // --------------------------
+    // VERCEL BLOB 저장
+    // --------------------------
 
-    res.setHeader(
-      "Content-Type",
-      "image/png"
+    const fileName =
+      `elastic-snap-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}.png`;
+
+    const blob = await put(
+      `elastic-snap/${fileName}`,
+      imageBuffer,
+      {
+        access: "public",
+        contentType: "image/png"
+      }
     );
 
-    res.setHeader(
-      "Cache-Control",
-      "no-store"
+    console.log(
+      "IMAGE SAVED TO BLOB:",
+      blob.url
     );
 
-    res.setHeader(
-      "Access-Control-Allow-Origin",
-      "*"
-    );
+    // --------------------------
+    // 다운로드 URL 생성
+    // --------------------------
 
-    res.end(imageBuffer);
-    return;
+    const downloadUrl =
+      `https://elastic-snap-api.vercel.app/api/download-file` +
+      `?url=${encodeURIComponent(blob.url)}` +
+      `&name=${encodeURIComponent(
+        "Elastic_Snap.png"
+      )}`;
+
+    // --------------------------
+    // Canva에 JSON 반환
+    // --------------------------
+
+    return res.status(200).json({
+      imageUrl: blob.url,
+      downloadUrl
+    });
 
   } catch (error) {
     console.error(
