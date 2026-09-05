@@ -4,6 +4,6 @@
   "type": "module",
   "dependencies": {
     "openai": "^5.0.0",
-    "@vercel/blob": "^1.0.0"
+    "@vercel/blob": "^2.4.0"
   }
 }
