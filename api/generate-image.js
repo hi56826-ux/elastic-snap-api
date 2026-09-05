@@ -10,6 +10,10 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
   if (req.method === "OPTIONS") {
+    console.log(
+  "IMAGE BASE64 LENGTH:",
+  imageBase64?.length
+);
     return res.status(200).end();
   }
 
