@@ -110,7 +110,12 @@ No text inside the image.
     if (!imageBase64) {
       throw new Error("No image data returned");
     }
-
+    
+    console.log(
+  "IMAGE BASE64 LENGTH:",
+  imageBase64?.length || 0
+);
+    
     return res.status(200).json({
       imageData: `data:image/png;base64,${imageBase64}`,
     });
