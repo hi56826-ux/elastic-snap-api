@@ -1,0 +1,2132 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ELASTIC SNAP : 탄성 순간 포착 스튜디오</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Google Fonts: Orbitron & Pretendard -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Pretendard:wght@400;600;700;800&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Pretendard', 'sans-serif'],
+            display: ['Orbitron', 'sans-serif']
+          },
+          colors: {
+            dark: {
+              950: '#070a13',
+              900: '#0b1120',
+              850: '#111b2f',
+              800: '#1e293b',
+              700: '#334155'
+            },
+            neon: {
+              lime: '#a3e635',
+              limeHover: '#bef264',
+              cyan: '#38bdf8',
+              cyanHover: '#7dd3fc',
+              amber: '#fbbf24'
+            }
+          },
+          animation: {
+            'pulse-fast': 'pulse 1.2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'bounce-gentle': 'bounceGentle 1.8s ease-in-out infinite',
+            'glow-lime': 'glowLime 2s ease-in-out infinite alternate',
+          },
+          keyframes: {
+            bounceGentle: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-6px)' }
+            },
+            glowLime: {
+              '0%': { boxShadow: '0 0 10px rgba(163, 230, 53, 0.3)' },
+              '100%': { boxShadow: '0 0 25px rgba(163, 230, 53, 0.8)' }
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0b1120;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #a3e635;
+    }
+
+    /* Live Viewfinder Crosshair Background */
+    .viewfinder-grid {
+      background-size: 36px 36px;
+      background-image: 
+        linear-gradient(to right, rgba(56, 189, 248, 0.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(56, 189, 248, 0.05) 1px, transparent 1px);
+    }
+  </style>
+</head>
+<body class="bg-dark-950 text-slate-100 min-h-screen font-sans flex flex-col antialiased selection:bg-neon-lime selection:text-dark-950">
+
+  <!-- ================= TOP NAVIGATION & GAMIFICATION BAR ================= -->
+  <header class="sticky top-0 z-40 bg-dark-900/90 backdrop-blur-md border-b border-slate-800/80 px-4 lg:px-8 py-3">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <!-- Title & Branding -->
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="resetToStudio()">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-neon-lime to-neon-cyan flex items-center justify-center text-dark-950 text-xl font-black shadow-lg shadow-neon-lime/20">
+          <i class="fa-solid fa-bolt"></i>
+        </div>
+        <div>
+          <h1 class="text-xl md:text-2xl font-display font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-neon-lime via-white to-neon-cyan">
+            ELASTIC SNAP
+          </h1>
+          <p class="text-xs text-slate-400 font-semibold tracking-tight">탄성력이 작용하는 찰나를 포착하라! 🔬</p>
+        </div>
+      </div>
+
+      <!-- Gamification Tracker -->
+      <div class="flex items-center gap-3 md:gap-6 bg-dark-850 border border-slate-800 rounded-2xl px-4 py-2 text-xs md:text-sm">
+        <!-- Level & XP -->
+        <div class="flex items-center gap-2">
+          <span class="px-2 py-0.5 rounded-md bg-neon-cyan/20 text-neon-cyan font-bold font-display">LV.<span id="userLevel">1</span></span>
+          <div class="flex flex-col">
+            <div class="flex justify-between text-[11px] text-slate-400 font-medium">
+              <span>XP</span>
+              <span id="xpText">0 / 100</span>
+            </div>
+            <div class="w-24 md:w-32 h-2 bg-dark-800 rounded-full overflow-hidden">
+              <div id="xpProgressBar" class="h-full bg-gradient-to-r from-neon-cyan to-neon-lime transition-all duration-500" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Badges Button / Status -->
+        <button onclick="toggleBadgeModal()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all text-xs font-semibold">
+          <i class="fa-solid fa-award text-neon-amber"></i>
+          <span>배지 컬렉션 (<span id="unlockedBadgesCount">0</span>/3)</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= MAIN CONTAINER ================= -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-6 flex flex-col justify-center">
+
+    <!-- ─────────────────────────────────────────────────────────────
+         VIEW 1: STUDIO BUILDER (LIVE SCENE + SELECTION PANEL)
+         ───────────────────────────────────────────────────────────── -->
+    <div id="studioView" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+      <!-- LEFT: LIVE SCENE (VIEWFINDER & STICKER STACK) -->
+      <div class="lg:col-span-5 bg-dark-900 border border-slate-800/90 rounded-3xl p-5 shadow-2xl relative flex flex-col viewfinder-grid">
+        <!-- Viewfinder Header -->
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
+            <span class="text-xs font-display font-bold tracking-widest text-red-400 uppercase">REC • LIVE SCENE</span>
+          </div>
+          <span class="text-xs font-mono text-neon-cyan bg-neon-cyan/10 px-2 py-0.5 rounded border border-neon-cyan/20">
+            FRAME: <span id="sceneCompleteness">0%</span>
+          </span>
+        </div>
+
+        <!-- Visual Stage Area -->
+        <div class="my-4 relative bg-dark-950/80 rounded-2xl border border-slate-800 p-4 min-h-[360px] md:min-h-[420px] flex flex-col justify-between overflow-hidden shadow-inner">
+          <!-- Viewfinder Corner Markers -->
+          <div class="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-neon-cyan pointer-events-none"></div>
+          <div class="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-neon-cyan pointer-events-none"></div>
+          <div class="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-neon-cyan pointer-events-none"></div>
+          <div class="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-neon-cyan pointer-events-none"></div>
+
+          <!-- Scene Dynamic Graphic Preview Badge -->
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span class="font-display tracking-wide uppercase"><i class="fa-solid fa-camera mr-1"></i> 포착 대상 구조</span>
+            <span id="physicsStatusTag" class="text-neon-lime bg-neon-lime/10 px-2.5 py-0.5 rounded-full font-bold">대기 중</span>
+          </div>
+
+          <!-- Dynamic Slots Display -->
+          <div class="space-y-2.5 my-auto py-2">
+            <!-- Slot 1: WHO -->
+            <div id="slot-who" class="flex items-center gap-3 p-2.5 rounded-xl border border-dashed border-slate-800 bg-dark-900/60 transition-all duration-300">
+              <div class="w-10 h-10 rounded-lg bg-dark-800 flex items-center justify-center text-lg text-slate-500 font-bold slot-icon">
+                <i class="fa-solid fa-user-lock"></i>
+              </div>
+              <div class="flex-1">
+                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">STEP 1 • 등장인물</p>
+                <p class="text-sm font-semibold text-slate-400 slot-label">선택되지 않음 (?)</p>
+              </div>
+            </div>
+
+            <!-- Slot 2: OBJECT -->
+            <div id="slot-object" class="flex items-center gap-3 p-2.5 rounded-xl border border-dashed border-slate-800 bg-dark-900/60 transition-all duration-300">
+              <div class="w-10 h-10 rounded-lg bg-dark-800 flex items-center justify-center text-lg text-slate-500 font-bold slot-icon">
+                <i class="fa-solid fa-shapes"></i>
+              </div>
+              <div class="flex-1">
+                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">STEP 2 • 탄성체</p>
+                <p class="text-sm font-semibold text-slate-400 slot-label">선택되지 않음 (?)</p>
+              </div>
+            </div>
+
+            <!-- Slot 3: ACTION -->
+            <div id="slot-action" class="flex items-center gap-3 p-2.5 rounded-xl border border-dashed border-slate-800 bg-dark-900/60 transition-all duration-300">
+              <div class="w-10 h-10 rounded-lg bg-dark-800 flex items-center justify-center text-lg text-slate-500 font-bold slot-icon">
+                <i class="fa-solid fa-person-running"></i>
+              </div>
+              <div class="flex-1">
+                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">STEP 3 • 상호작용 행동</p>
+                <p class="text-sm font-semibold text-slate-400 slot-label">선택되지 않음 (?)</p>
+              </div>
+            </div>
+
+            <!-- Slot 4: PLACE -->
+            <div id="slot-place" class="flex items-center gap-3 p-2.5 rounded-xl border border-dashed border-slate-800 bg-dark-900/60 transition-all duration-300">
+              <div class="w-10 h-10 rounded-lg bg-dark-800 flex items-center justify-center text-lg text-slate-500 font-bold slot-icon">
+                <i class="fa-solid fa-location-dot"></i>
+              </div>
+              <div class="flex-1">
+                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">STEP 4 • 배경 장소</p>
+                <p class="text-sm font-semibold text-slate-400 slot-label">선택되지 않음 (?)</p>
+              </div>
+            </div>
+
+            <!-- Slot 5: MOMENT (SCIENCE CORE) -->
+            <div id="slot-moment" class="flex items-center gap-3 p-2.5 rounded-xl border border-dashed border-slate-800 bg-dark-900/60 transition-all duration-300">
+              <div class="w-10 h-10 rounded-lg bg-dark-800 flex items-center justify-center text-lg text-slate-500 font-bold slot-icon">
+                <i class="fa-solid fa-bolt"></i>
+              </div>
+              <div class="flex-1">
+                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">STEP 5 • 포착할 탄성 순간</p>
+                <p class="text-sm font-semibold text-slate-400 slot-label">선택되지 않음 (?)</p>
+              </div>
+            </div>
+
+            <!-- Slot 6: STYLE -->
+            <div id="slot-style" class="flex items-center gap-3 p-2.5 rounded-xl border border-dashed border-slate-800 bg-dark-900/60 transition-all duration-300">
+              <div class="w-10 h-10 rounded-lg bg-dark-800 flex items-center justify-center text-lg text-slate-500 font-bold slot-icon">
+                <i class="fa-solid fa-palette"></i>
+              </div>
+              <div class="flex-1">
+                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">STEP 6 • 시네마틱 스타일</p>
+                <p class="text-sm font-semibold text-slate-400 slot-label">선택되지 않음 (?)</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Live Physics Annotation Preview -->
+          <div id="liveScientificHint" class="bg-dark-900/90 rounded-xl p-3 border border-slate-800 text-xs text-slate-300 leading-relaxed">
+            <span class="text-neon-cyan font-bold"><i class="fa-solid fa-lightbulb mr-1"></i> 과학 코칭:</span> 
+            우측 패널에서 요소를 골라 탄성력이 작용하는 찰나의 장면을 설계하세요.
+          </div>
+        </div>
+
+        <!-- Snap Button Container -->
+        <div class="mt-2">
+          <div id="completionNotice" class="hidden mb-3 p-3 rounded-xl bg-neon-lime/10 border border-neon-lime/30 text-center animate-bounce-gentle">
+            <span class="text-neon-lime font-bold text-sm tracking-wide">
+              ⚡ PERFECT! ELASTIC SNAP UNLOCKED! (+50 XP)
+            </span>
+          </div>
+          
+          <button id="snapButton" onclick="triggerElasticSnap()" disabled class="w-full py-4 px-6 rounded-2xl font-display font-black text-base md:text-lg tracking-wider uppercase transition-all duration-300 flex items-center justify-center gap-3 bg-slate-800 text-slate-500 cursor-not-allowed shadow-lg">
+            <i class="fa-solid fa-camera-retro text-xl"></i>
+            <span>📸 ELASTIC SNAP!</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- RIGHT: STEP SELECTION PANEL -->
+      <div class="lg:col-span-7 bg-dark-900 border border-slate-800 rounded-3xl p-5 md:p-7 shadow-2xl flex flex-col min-h-[640px]">
+        <!-- Step Indicator Tabs -->
+        <div class="flex items-center justify-between overflow-x-auto pb-4 border-b border-slate-800 gap-2 no-scrollbar">
+          <button onclick="goToStep(1)" id="tab-step-1" class="step-tab flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all bg-neon-lime text-dark-950">
+            <span>1. 인물</span>
+          </button>
+          <button onclick="goToStep(2)" id="tab-step-2" class="step-tab flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all bg-dark-800 text-slate-400 hover:text-white">
+            <span>2. 탄성체</span>
+          </button>
+          <button onclick="goToStep(3)" id="tab-step-3" class="step-tab flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all bg-dark-800 text-slate-400 hover:text-white">
+            <span>3. 행동</span>
+          </button>
+          <button onclick="goToStep(4)" id="tab-step-4" class="step-tab flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all bg-dark-800 text-slate-400 hover:text-white">
+            <span>4. 장소</span>
+          </button>
+          <button onclick="goToStep(5)" id="tab-step-5" class="step-tab flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all bg-dark-800 text-slate-400 hover:text-white">
+            <span class="text-neon-lime font-black">5. 탄성 순간</span>
+          </button>
+          <button onclick="goToStep(6)" id="tab-step-6" class="step-tab flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all bg-dark-800 text-slate-400 hover:text-white">
+            <span>6. 스타일</span>
+          </button>
+        </div>
+
+        <!-- Step Content Panels -->
+        <div class="flex-1 py-5">
+          <!-- STEP 1: WHO? -->
+          <div id="step-panel-1" class="step-panel space-y-4">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                  <span class="text-neon-lime font-display">STEP 1</span> 누가 장면에 등장할까요?
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">실험이나 스포츠 활동을 펼칠 주인공을 선택하세요.</p>
+              </div>
+              <span class="text-xs font-semibold text-neon-cyan bg-neon-cyan/10 px-2 py-1 rounded-lg">+10 XP</span>
+            </div>
+            <div id="whoGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- STEP 2: ELASTIC OBJECT -->
+          <div id="step-panel-2" class="step-panel hidden space-y-4">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                  <span class="text-neon-lime font-display">STEP 2</span> 어떤 탄성체를 포착할까요?
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">외력에 의해 모양이 변했다가 되돌아가는 물체를 선택하세요.</p>
+              </div>
+              <span class="text-xs font-semibold text-neon-cyan bg-neon-cyan/10 px-2 py-1 rounded-lg">+10 XP</span>
+            </div>
+            <div id="objectGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2 max-h-[380px] overflow-y-auto pr-1">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- STEP 3: ACTION -->
+          <div id="step-panel-3" class="step-panel hidden space-y-4">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                  <span class="text-neon-lime font-display">STEP 3</span> 어떤 힘과 행동을 가할까요?
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">선택한 탄성체에 작용하는 물리적 상호작용 행동입니다.</p>
+              </div>
+              <span class="text-xs font-semibold text-neon-cyan bg-neon-cyan/10 px-2 py-1 rounded-lg">+10 XP</span>
+            </div>
+            <div id="actionGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <!-- Dynamically populated based on chosen object -->
+            </div>
+          </div>
+
+          <!-- STEP 4: PLACE -->
+          <div id="step-panel-4" class="step-panel hidden space-y-4">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                  <span class="text-neon-lime font-display">STEP 4</span> 어디에서 일어나는 장면인가요?
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">안전하고 생생한 활동 배경 장소를 선택하세요.</p>
+              </div>
+              <span class="text-xs font-semibold text-neon-cyan bg-neon-cyan/10 px-2 py-1 rounded-lg">+10 XP</span>
+            </div>
+            <div id="placeGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- STEP 5: ELASTIC MOMENT (CRITICAL SCIENCE STEP) -->
+          <div id="step-panel-5" class="step-panel hidden space-y-4">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                  <span class="text-neon-lime font-display">STEP 5</span> 탄성력의 어느 순간을 포착할까요?
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">★ 과학 핵심: 물체의 변형과 복원 단계 중 포착할 찰나를 정합니다.</p>
+              </div>
+              <span class="text-xs font-semibold text-neon-amber bg-neon-amber/10 px-2 py-1 rounded-lg">+15 XP</span>
+            </div>
+            <div id="momentCards" class="grid grid-cols-1 gap-3.5 pt-2">
+              <!-- Moment 1: 변형되는 순간 -->
+              <div onclick="selectMoment('deforming')" id="card-moment-deforming" class="moment-card p-4 rounded-2xl border border-slate-800 bg-dark-850 hover:border-neon-cyan transition-all cursor-pointer flex flex-col sm:flex-row gap-4 items-start">
+                <div class="w-14 h-14 rounded-xl bg-neon-cyan/20 border border-neon-cyan/40 flex items-center justify-center text-neon-cyan text-2xl flex-shrink-0">
+                  <i class="fa-solid fa-arrows-down-to-line"></i>
+                </div>
+                <div class="flex-1">
+                  <div class="flex items-center gap-2">
+                    <h4 class="text-base font-bold text-white">① 변형되는 순간 (Deforming)</h4>
+                    <span class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono">STAGE 1</span>
+                  </div>
+                  <p class="text-xs text-slate-300 mt-1">외부의 힘을 받아 탄성체의 모양이 찌그러지거나 휘어지기 시작하는 초기 단계입니다.</p>
+                  <div class="mt-2 text-[11px] text-neon-cyan flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <span id="momentDesc1">예: 공이 바닥에 닿으며 약간 눌리는 찰나</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Moment 2: 최대 변형 순간 -->
+              <div onclick="selectMoment('max')" id="card-moment-max" class="moment-card p-4 rounded-2xl border border-slate-800 bg-dark-850 hover:border-neon-amber transition-all cursor-pointer flex flex-col sm:flex-row gap-4 items-start">
+                <div class="w-14 h-14 rounded-xl bg-neon-amber/20 border border-neon-amber/40 flex items-center justify-center text-neon-amber text-2xl flex-shrink-0">
+                  <i class="fa-solid fa-compress"></i>
+                </div>
+                <div class="flex-1">
+                  <div class="flex items-center gap-2">
+                    <h4 class="text-base font-bold text-white">② 최대 변형 순간 (Max Strain & Energy)</h4>
+                    <span class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono">STAGE 2</span>
+                  </div>
+                  <p class="text-xs text-slate-300 mt-1">물체가 힘을 최대로 받아 가장 크게 찌그러지거나 늘어난 극적인 정지 찰나입니다.</p>
+                  <div class="mt-2 text-[11px] text-neon-amber flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <span id="momentDesc2">예: 트램펄린 바닥 천이 가장 깊게 움푹 파인 순간</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Moment 3: 복원되는 순간 -->
+              <div onclick="selectMoment('restoring')" id="card-moment-restoring" class="moment-card p-4 rounded-2xl border border-slate-800 bg-dark-850 hover:border-neon-lime transition-all cursor-pointer flex flex-col sm:flex-row gap-4 items-start">
+                <div class="w-14 h-14 rounded-xl bg-neon-lime/20 border border-neon-lime/40 flex items-center justify-center text-neon-lime text-2xl flex-shrink-0">
+                  <i class="fa-solid fa-bolt-lightning"></i>
+                </div>
+                <div class="flex-1">
+                  <div class="flex items-center gap-2">
+                    <h4 class="text-base font-bold text-white">③ 복원되는 순간 (Restoration Snap)</h4>
+                    <span class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono">STAGE 3</span>
+                  </div>
+                  <p class="text-xs text-slate-300 mt-1">원래 모양으로 전광석화처럼 돌아오며, 축적된 탄성력으로 물체를 힘차게 밀어내는 순간입니다.</p>
+                  <div class="mt-2 text-[11px] text-neon-lime flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <span id="momentDesc3">예: 펴진 천이 사람을 공중으로 로켓처럼 쏘아 올리는 순간</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 6: PHOTO STYLE (CINEMATIC SCIENCE STYLES) -->
+          <div id="step-panel-6" class="step-panel hidden space-y-4">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                  <span class="text-neon-lime font-display">STEP 6</span> 어떤 시네마틱 스타일로 연출할까요?
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">탄성 찰나의 폭발적 에너지를 담을 시각 예술 화풍을 선택하세요.</p>
+              </div>
+              <span class="text-xs font-semibold text-neon-cyan bg-neon-cyan/10 px-2 py-1 rounded-lg">+10 XP</span>
+            </div>
+            <div id="styleGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Navigation Buttons at Panel Bottom -->
+        <div class="pt-4 border-t border-slate-800 flex justify-between items-center">
+          <button id="prevStepBtn" onclick="navigateStep(-1)" class="px-4 py-2 rounded-xl bg-dark-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs flex items-center gap-2 transition-all">
+            <i class="fa-solid fa-arrow-left"></i> 이전 단계
+          </button>
+          <div class="text-xs text-slate-500 font-mono">
+            STEP <span id="currentStepNumber">1</span> / 6
+          </div>
+          <button id="nextStepBtn" onclick="navigateStep(1)" class="px-5 py-2 rounded-xl bg-neon-cyan/20 hover:bg-neon-cyan/30 text-neon-cyan border border-neon-cyan/40 font-semibold text-xs flex items-center gap-2 transition-all">
+            다음 단계 <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────────────────────────────────
+         VIEW 2: LOADING / DEVELOPING SCREEN
+         ───────────────────────────────────────────────────────────── -->
+    <div id="loadingView" class="hidden max-w-2xl mx-auto w-full bg-dark-900 border border-slate-800 rounded-3xl p-8 md:p-12 text-center shadow-2xl relative overflow-hidden">
+      <!-- Background Ambient Glow -->
+      <div class="absolute -top-24 -left-24 w-60 h-60 bg-neon-lime/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -bottom-24 -right-24 w-60 h-60 bg-neon-cyan/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <!-- Icon & Pulse Animation -->
+      <div class="relative w-28 h-28 mx-auto mb-6 flex items-center justify-center">
+        <div class="absolute inset-0 rounded-full border-4 border-neon-lime/20 animate-ping"></div>
+        <div class="w-24 h-24 rounded-full bg-dark-850 border-2 border-neon-lime flex items-center justify-center text-neon-lime text-4xl shadow-xl shadow-neon-lime/20 animate-glow-lime">
+          <i class="fa-solid fa-camera-retro"></i>
+        </div>
+      </div>
+
+      <h2 class="text-2xl md:text-3xl font-display font-black text-white tracking-wide">ELASTIC SNAP STUDIO</h2>
+      <p class="text-sm md:text-base text-slate-400 mt-2">초고속 카메라로 탄성 복원의 결정적 찰나를 현상하고 있습니다...</p>
+
+      <!-- Progress Indicators List -->
+      <div class="max-w-md mx-auto my-8 space-y-3 text-left">
+        <div id="load-step-1" class="flex items-center gap-3 p-3 rounded-xl bg-dark-850/80 border border-slate-800 text-xs font-semibold text-slate-400 transition-all">
+          <i class="fa-solid fa-circle-notch animate-spin text-neon-cyan"></i>
+          <span>🎬 극장용 3D 애니메이션 구도 및 볼류메트릭 라이팅 설정 중...</span>
+        </div>
+        <div id="load-step-2" class="flex items-center gap-3 p-3 rounded-xl bg-dark-850/80 border border-slate-800 text-xs font-semibold text-slate-500 transition-all">
+          <i class="fa-regular fa-circle text-slate-600"></i>
+          <span>⚡ 탄성 에너지 방출 및 물리적 변형 정밀 동기화 중...</span>
+        </div>
+        <div id="load-step-3" class="flex items-center gap-3 p-3 rounded-xl bg-dark-850/80 border border-slate-800 text-xs font-semibold text-slate-500 transition-all">
+          <i class="fa-regular fa-circle text-slate-600"></i>
+          <span>📸 Google Gemini AI 시네마틱 애니메이션 렌더링 중...</span>
+        </div>
+      </div>
+
+      <!-- Dynamic Science Fact -->
+      <div class="text-xs text-slate-400 bg-dark-950/80 rounded-xl p-3 border border-slate-800/80 max-w-md mx-auto">
+        <span class="text-neon-lime font-bold">💡 탄성 과학 팩트:</span> 
+        <span id="loadingScienceFact">탄성력은 물체의 변형 정도가 클수록 더 큰 크기로 작용합니다 (훅의 법칙).</span>
+      </div>
+
+      <!-- Error Retry Container (Initially Hidden) -->
+      <div id="loadingErrorBox" class="hidden mt-6 pt-6 border-t border-slate-800">
+        <p class="text-red-400 text-sm font-semibold mb-3">
+          <i class="fa-solid fa-triangle-exclamation mr-1"></i> <span id="loadingErrorMessage">Gemini 이미지 생성에 실패했습니다.</span>
+        </p>
+        <button onclick="triggerElasticSnap()" class="px-6 py-2.5 rounded-xl bg-neon-lime text-dark-950 font-bold text-sm hover:bg-neon-limeHover transition-all shadow-lg">
+          <i class="fa-solid fa-rotate-right mr-1.5"></i> 다시 생성하기
+        </button>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────────────────────────────────
+         VIEW 3: RESULT VIEW (IMAGE + SELECTIONS RECAP + SCIENCE REPORT)
+         ───────────────────────────────────────────────────────────── -->
+    <div id="resultView" class="hidden max-w-6xl mx-auto w-full bg-dark-900 border border-slate-800 rounded-3xl p-5 md:p-8 shadow-2xl space-y-6">
+      <!-- Result Top Header -->
+      <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-neon-lime/20 text-neon-lime border border-neon-lime/30">
+              📸 SNAP COMPLETE!
+            </span>
+            <span class="text-xs text-neon-cyan font-mono" id="imageSourceTag">IMAGE SOURCE: GOOGLE GEMINI</span>
+          </div>
+          <h2 id="resultTitle" class="text-xl md:text-2xl font-bold text-white mt-1">
+            "실내 다이빙 수영장에서 포착한 다이빙보드의 최대 변형 순간"
+          </h2>
+        </div>
+
+        <!-- Quick Back Button -->
+        <button onclick="backToStudioEdit()" class="px-4 py-2 rounded-xl bg-dark-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-2 border border-slate-700 transition-all">
+          <i class="fa-solid fa-sliders"></i> ← 장면 다시 편집하기
+        </button>
+      </div>
+
+      <!-- Result Body: 2 Columns (Image Left, Selections & Science Right) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        
+        <!-- Left: Frozen Photo Exhibit & Dual Download -->
+        <div class="lg:col-span-7 flex flex-col justify-between space-y-4">
+          <div class="relative bg-dark-950 rounded-2xl border border-slate-800 overflow-hidden shadow-2xl group flex items-center justify-center min-h-[380px] md:min-h-[460px]">
+            <!-- The Generated Image -->
+            <img id="generatedImage" src="" alt="ELASTIC SNAP generated image" class="w-full h-auto max-h-[540px] object-contain rounded-2xl transition-transform duration-500">
+
+            <!-- Watermark Tag -->
+            <div class="absolute bottom-3 left-3 bg-dark-950/80 backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-800 text-[11px] font-mono text-slate-300">
+              ⚡ ELASTIC SNAP • 1/10000s ACTION
+            </div>
+          </div>
+
+          <!-- Dual Action Buttons Bar -->
+          <div class="flex flex-col sm:flex-row gap-3">
+            <!-- 1. Standalone JPG Download -->
+            <button id="downloadPhotoBtn" onclick="downloadStandalonePhoto()" class="flex-1 py-3 px-4 rounded-xl bg-dark-800 hover:bg-slate-700 text-slate-100 border border-slate-700 font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition-all">
+              <i class="fa-solid fa-image text-neon-cyan"></i>
+              <span>📷 사진만 JPG 저장</span>
+            </button>
+
+            <!-- 2. Full Science Report Card Download (1920x1080 UHD) -->
+            <button id="downloadReportBtn" onclick="downloadFullScienceReportJpg()" class="flex-1 py-3.5 px-5 rounded-xl bg-gradient-to-r from-neon-lime to-lime-500 hover:from-neon-limeHover hover:to-lime-400 text-dark-950 font-display font-black text-xs md:text-sm tracking-wide flex items-center justify-center gap-2 shadow-xl shadow-neon-lime/20 transition-all">
+              <i class="fa-solid fa-file-invoice text-base"></i>
+              <span>🧪 과학 리포트 JPG 저장</span>
+            </button>
+
+            <!-- Resnap with same condition button -->
+            <button onclick="triggerElasticSnap()" class="py-3 px-4 rounded-xl bg-dark-800 hover:bg-slate-700 text-neon-cyan border border-neon-cyan/30 text-xs font-bold flex items-center justify-center gap-2 transition-all">
+              <i class="fa-solid fa-arrows-rotate"></i>
+              <span>🔄 다시 SNAP!</span>
+            </button>
+          </div>
+          
+          <!-- Download Notice -->
+          <p id="downloadFeedback" class="text-xs text-center text-slate-400">
+            * [과학 리포트 JPG 저장] 클릭 시 고해상도(1920×1080) 리포트 카드가 .jpg 파일로 저장됩니다.
+          </p>
+        </div>
+
+        <!-- Right: My Scene Selections + Science Laboratory Report -->
+        <div class="lg:col-span-5 flex flex-col justify-between space-y-4">
+          
+          <!-- 1. MY SCENE SELECTIONS RECAP (2x3 GRID) -->
+          <div class="bg-dark-850 rounded-2xl border border-slate-800 p-4">
+            <div class="flex items-center justify-between pb-2 mb-3 border-b border-slate-800 text-xs">
+              <span class="font-bold text-white flex items-center gap-1.5">
+                <i class="fa-solid fa-clipboard-check text-neon-cyan"></i> 나의 장면 선택 (SCENE SELECTIONS)
+              </span>
+              <span class="text-[10px] text-neon-lime bg-neon-lime/10 px-2 py-0.5 rounded font-mono">6개 조건 반영</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <!-- Who -->
+              <div class="p-2 rounded-xl bg-dark-900 border border-slate-800/80">
+                <div class="text-[10px] text-slate-400 font-bold">👤 등장인물</div>
+                <div id="recapWho" class="text-white font-semibold truncate mt-0.5">-</div>
+              </div>
+              <!-- Object -->
+              <div class="p-2 rounded-xl bg-dark-900 border border-slate-800/80">
+                <div class="text-[10px] text-slate-400 font-bold">🏀 탄성체</div>
+                <div id="recapObject" class="text-neon-lime font-bold truncate mt-0.5">-</div>
+              </div>
+              <!-- Action -->
+              <div class="p-2 rounded-xl bg-dark-900 border border-slate-800/80">
+                <div class="text-[10px] text-slate-400 font-bold">🎬 행동</div>
+                <div id="recapAction" class="text-white font-semibold truncate mt-0.5">-</div>
+              </div>
+              <!-- Place -->
+              <div class="p-2 rounded-xl bg-dark-900 border border-slate-800/80">
+                <div class="text-[10px] text-slate-400 font-bold">📍 장소</div>
+                <div id="recapPlace" class="text-white font-semibold truncate mt-0.5">-</div>
+              </div>
+              <!-- Moment -->
+              <div class="p-2 rounded-xl bg-dark-900 border border-slate-800/80">
+                <div class="text-[10px] text-slate-400 font-bold">⚡ 포착 순간</div>
+                <div id="recapMoment" class="text-neon-amber font-bold truncate mt-0.5">-</div>
+              </div>
+              <!-- Style -->
+              <div class="p-2 rounded-xl bg-dark-900 border border-slate-800/80">
+                <div class="text-[10px] text-slate-400 font-bold">🎨 이미지 스타일</div>
+                <div id="recapStyle" class="text-neon-cyan font-semibold truncate mt-0.5">-</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. GRADE 7 SCIENCE LABORATORY REPORT -->
+          <div class="bg-dark-850 rounded-2xl border border-slate-800 p-4 space-y-3">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-800 text-xs">
+              <span class="font-bold text-white flex items-center gap-1.5">
+                <i class="fa-solid fa-atom text-neon-lime"></i> 탄성 과학 포토 리포트
+              </span>
+              <span class="text-[10px] font-mono text-slate-400">중학교 1학년 과학</span>
+            </div>
+
+            <!-- Report Blocks -->
+            <div class="space-y-2.5 text-xs">
+              <!-- Object -->
+              <div class="p-2.5 rounded-xl bg-dark-900 border border-slate-800">
+                <div class="text-slate-400 font-bold mb-0.5 flex items-center gap-1.5 text-[11px]">
+                  <i class="fa-solid fa-shapes text-neon-cyan"></i> 포착한 탄성체
+                </div>
+                <div id="sciReportObject" class="text-white font-semibold">
+                  -
+                </div>
+              </div>
+
+              <!-- Deformation -->
+              <div class="p-2.5 rounded-xl bg-dark-900 border border-slate-800">
+                <div class="text-slate-400 font-bold mb-0.5 flex items-center gap-1.5 text-[11px]">
+                  <i class="fa-solid fa-compress text-neon-amber"></i> 작용한 외력과 변형
+                </div>
+                <div id="sciReportDeform" class="text-slate-300 leading-relaxed text-[11px]">
+                  -
+                </div>
+              </div>
+
+              <!-- Restoration -->
+              <div class="p-2.5 rounded-xl bg-dark-900 border border-slate-800">
+                <div class="text-slate-400 font-bold mb-0.5 flex items-center gap-1.5 text-[11px]">
+                  <i class="fa-solid fa-bolt text-neon-lime"></i> 복원 과정과 탄성력의 방향
+                </div>
+                <div id="sciReportRestore" class="text-slate-300 leading-relaxed text-[11px]">
+                  -
+                </div>
+              </div>
+
+              <!-- Principle -->
+              <div class="p-3 rounded-xl bg-neon-lime/10 border border-neon-lime/30 text-neon-lime">
+                <div class="font-bold mb-0.5 flex items-center gap-1.5 text-[11px]">
+                  <i class="fa-solid fa-check-double"></i> 탄성력의 핵심 원리
+                </div>
+                <div id="sciReportPrinciple" class="text-[11px] text-slate-200 leading-relaxed">
+                  -
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Prompt Code Viewer -->
+          <div class="bg-dark-900/60 rounded-xl p-2.5 border border-slate-800">
+            <details class="text-[11px] text-slate-400 group">
+              <summary class="cursor-pointer hover:text-slate-200 flex items-center justify-between font-mono">
+                <span><i class="fa-solid fa-terminal mr-1 text-neon-cyan"></i> AI 시네마틱 프롬프트 확인</span>
+                <i class="fa-solid fa-chevron-down text-[10px] transition-transform group-open:rotate-180"></i>
+              </summary>
+              <p id="promptInspectorText" class="mt-2 p-2 rounded bg-dark-950 text-slate-400 font-mono text-[10px] leading-relaxed break-words border border-slate-800">
+                --
+              </p>
+            </details>
+          </div>
+
+          <!-- Developer Verification Status Box -->
+          <div class="p-3 rounded-xl bg-dark-950/90 border border-neon-cyan/40 text-xs font-mono flex flex-wrap items-center justify-between gap-2 shadow-inner">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-neon-lime animate-ping"></span>
+              <span class="text-slate-400">SELECTED STYLE:</span>
+              <span id="devSelectedStyle" class="text-neon-lime font-bold">3D ANIMATION</span>
+            </div>
+            <div class="flex items-center gap-3 text-[11px] text-slate-300">
+              <span>IMAGE SOURCE: <strong class="text-neon-cyan">GOOGLE GEMINI</strong></span>
+              <span class="text-slate-600">|</span>
+              <span>STYLE REFERENCE: <strong class="text-neon-amber">SERVER ATTACHED</strong></span>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ================= BADGE MODAL ================= -->
+  <div id="badgeModal" class="hidden fixed inset-0 z-50 bg-dark-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-dark-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl relative">
+      <button onclick="toggleBadgeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="text-center mb-6">
+        <div class="w-12 h-12 rounded-2xl bg-neon-amber/20 text-neon-amber flex items-center justify-center text-2xl mx-auto mb-2">
+          <i class="fa-solid fa-award"></i>
+        </div>
+        <h3 class="text-xl font-bold text-white">탄성 포착 스튜디오 업적</h3>
+        <p class="text-xs text-slate-400">장면을 다양하게 구성하여 과학 배지를 획득하세요!</p>
+      </div>
+
+      <div class="space-y-3">
+        <!-- Badge 1 -->
+        <div id="badge-rookie" class="flex items-center gap-3 p-3 rounded-2xl border border-slate-800 bg-dark-850 opacity-60">
+          <div class="w-12 h-12 rounded-xl bg-dark-800 flex items-center justify-center text-xl text-slate-500 badge-icon">
+            <i class="fa-solid fa-camera"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h4 class="text-sm font-bold text-slate-300 badge-name">ELASTIC ROOKIE</h4>
+              <span class="badge-status text-[10px] px-1.5 py-0.5 rounded bg-dark-800 text-slate-500">잠김</span>
+            </div>
+            <p class="text-xs text-slate-400">첫 번째 탄성 순간 사진을 성공적으로 SNAP!</p>
+          </div>
+        </div>
+
+        <!-- Badge 2 -->
+        <div id="badge-explorer" class="flex items-center gap-3 p-3 rounded-2xl border border-slate-800 bg-dark-850 opacity-60">
+          <div class="w-12 h-12 rounded-xl bg-dark-800 flex items-center justify-center text-xl text-slate-500 badge-icon">
+            <i class="fa-solid fa-compass"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h4 class="text-sm font-bold text-slate-300 badge-name">ELASTIC EXPLORER</h4>
+              <span class="badge-status text-[10px] px-1.5 py-0.5 rounded bg-dark-800 text-slate-500">0/3 탐색</span>
+            </div>
+            <p class="text-xs text-slate-400">서로 다른 3가지 탄성체를 탐색하고 생성하기</p>
+          </div>
+        </div>
+
+        <!-- Badge 3 -->
+        <div id="badge-master" class="flex items-center gap-3 p-3 rounded-2xl border border-slate-800 bg-dark-850 opacity-60">
+          <div class="w-12 h-12 rounded-xl bg-dark-800 flex items-center justify-center text-xl text-slate-500 badge-icon">
+            <i class="fa-solid fa-crown"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h4 class="text-sm font-bold text-slate-300 badge-name">MOMENT MASTER</h4>
+              <span class="badge-status text-[10px] px-1.5 py-0.5 rounded bg-dark-800 text-slate-500">0/3 순간</span>
+            </div>
+            <p class="text-xs text-slate-400">변형, 최대 변형, 복원 3가지 순간을 모두 사진으로 포착</p>
+          </div>
+        </div>
+      </div>
+
+      <button onclick="toggleBadgeModal()" class="mt-6 w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all">
+        닫기
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= IN-APP NOTIFICATION TOAST ================= -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-dark-900 border border-neon-lime/40 text-slate-100 px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 pointer-events-none">
+    <div class="w-8 h-8 rounded-lg bg-neon-lime/20 text-neon-lime flex items-center justify-center text-sm" id="toastIcon">
+      <i class="fa-solid fa-bolt"></i>
+    </div>
+    <div>
+      <h5 class="text-xs font-bold" id="toastTitle">알림</h5>
+      <p class="text-[11px] text-slate-300" id="toastMsg">내용</p>
+    </div>
+  </div>
+
+  <!-- ================= JAVASCRIPT LOGIC & ENGINE ================= -->
+  <script>
+    /* ─────────────────────────────────────────────────────────────
+       1. DATA STRUCTURES & SCIENTIFIC DICTIONARY
+       ───────────────────────────────────────────────────────────── */
+    const WHO_LIST = [
+      { id: 'middle_schooler', name: '중학생', icon: 'fa-graduation-cap' },
+      { id: 'high_schooler', name: '고등학생', icon: 'fa-user-tie' },
+      { id: 'elementary_student', name: '초등학생', icon: 'fa-child' },
+      { id: 'two_friends', name: '친구 두 명', icon: 'fa-user-group' },
+      { id: 'basketball_player', name: '농구선수', icon: 'fa-basketball' },
+      { id: 'soccer_player', name: '축구선수', icon: 'fa-futbol' },
+      { id: 'tennis_player', name: '테니스선수', icon: 'fa-baseball' },
+      { id: 'archery_player', name: '양궁선수', icon: 'fa-bullseye' },
+      { id: 'gymnast', name: '체조선수', icon: 'fa-person-walking' },
+      { id: 'runner', name: '육상선수', icon: 'fa-person-running' },
+      { id: 'cyclist', name: '자전거 탄 사람', icon: 'fa-person-biking' },
+      { id: 'family_with_dog', name: '반려견과 사람', icon: 'fa-dog' }
+    ];
+
+    const ELASTIC_OBJECTS = [
+      { 
+        id: 'trampoline', 
+        name: '트램펄린', 
+        icon: 'fa-circle-dot',
+        category: '탄성 섬유망',
+        deformPhysics: '착지하는 사람의 체중에 의해 고탄성 섬유 매트가 아래쪽으로 깊게 함몰되며 늘어납니다.',
+        restorePhysics: '매트의 고무줄과 스프링이 원래의 수평 상태로 복원되면서 사람을 허공으로 힘차게 튕겨 올립니다.',
+        effect: '원래 모양으로 돌아가려는 탄성력이 사람의 운동 방향을 위쪽으로 전환시켜 높이 점프하게 합니다.'
+      },
+      { 
+        id: 'ping_pong_ball', 
+        name: '탁구공', 
+        icon: 'fa-table-tennis-paddle-ball',
+        category: '얇은 플라스틱 탄성구',
+        deformPhysics: '단단한 라켓 고무면에 닿는 순간 초고속 찰나 동안 접촉 밑면이 살짝 찌그러집니다.',
+        restorePhysics: '단단하고 탄성이 뛰어난 셀룰로이드 플라스틱 벽체가 즉시 원형으로 팽창 복원됩니다.',
+        effect: '순식간에 원래 형태로 복원되는 탄성력으로 매우 경쾌하고 빠른 리바운드가 일어납니다.'
+      },
+      { 
+        id: 'basketball', 
+        name: '농구공', 
+        icon: 'fa-basketball',
+        category: '공기 압축형 고무구',
+        deformPhysics: '단단한 코트 바닥과 충돌하는 찰나, 바닥과 닿는 공의 아래쪽이 둥근 모양을 잃고 평평한 타원형으로 심하게 찌그러집니다.',
+        restorePhysics: '내부 압축 공기와 외피 고무가 둥근 원래 모양으로 되돌아오며 바닥면을 강하게 밀쳐냅니다.',
+        effect: '바닥을 미는 탄성 반작용 힘에 의해 농구공이 손높이까지 다시 튀어오릅니다.'
+      },
+      { 
+        id: 'tennis_ball', 
+        name: '테니스공', 
+        icon: 'fa-baseball',
+        category: '압축 탄성 펠트구',
+        deformPhysics: '라켓의 스트링(줄)과 테니스공이 맞부딪히며 공은 찌그러지고 라켓 줄망은 뒤쪽으로 불룩하게 밀립니다.',
+        restorePhysics: '찌그러진 공과 늘어난 라켓 줄이 동시에 원래 모양으로 팽창 및 수축하여 서로를 밀어냅니다.',
+        effect: '탄성력의 폭발적 복원으로 시속 150km가 넘는 초고속 스매시가 완성됩니다.'
+      },
+      { 
+        id: 'bow', 
+        name: '활 (양궁)', 
+        icon: 'fa-bullseye',
+        category: '탄성 복합 활채',
+        deformPhysics: '선수가 시위를 뒤로 당기면 곧게 뻗어있던 활채의 위아래 날개가 활 모양으로 크게 휘어집니다.',
+        restorePhysics: '손가락을 놓는 순간 휘어졌던 활채가 0.01초 만에 원래의 곧은 형태로 튕겨 펴집니다.',
+        effect: '활채가 펴지며 시위를 원래 위치로 밀어내는 탄성력이 화살을 표적지로 발사합니다.'
+      },
+      { 
+        id: 'rubber_band', 
+        name: '고무줄 / 저항밴드', 
+        icon: 'fa-infinity',
+        category: '천연 라텍스 탄성체',
+        deformPhysics: '양손으로 잡아당기면 분자 구조가 일렬로 정렬되며 원래 길이의 3배 이상 길게 늘어납니다.',
+        restorePhysics: '잡고 있던 힘을 풀면 양 끝이 중심으로 맹렬한 속도로 좁혀지며 원래 길이로 수축합니다.',
+        effect: '길이가 늘어날수록 원래대로 줄어들려는 탄성력이 커져 강한 장력을 발생시킵니다.'
+      },
+      { 
+        id: 'diving_board', 
+        name: '다이빙보드', 
+        icon: 'fa-water-ladder',
+        category: '외팔보형 탄성 판',
+        deformPhysics: '다이빙 선수가 끝부분을 힘차게 밟아 누르면 수평이던 보드가 아래쪽 수면 방향으로 깊게 휩니다.',
+        restorePhysics: '유리섬유 복합 보드가 팽팽한 반동과 함께 위쪽 수평으로 빠르게 솟구쳐 오릅니다.',
+        effect: '휘어졌던 보드가 펴지는 탄성력이 선수의 발바닥을 공중 5미터 높이로 밀어올립니다.'
+      },
+      { 
+        id: 'pole_vault', 
+        name: '장대높이뛰기 장대', 
+        icon: 'fa-arrow-up-right-dots',
+        category: '유리섬유 탄성 장대',
+        deformPhysics: '달려온 육상선수가 장대를 홈에 꽂고 체중을 싣는 순간 장대가 U자 모양으로 극단적으로 휩니다.',
+        restorePhysics: 'U자로 굽었던 탄성 장대가 다시 꼿꼿한 직선 형태로 펴지며 엄청난 복원력을 방출합니다.',
+        effect: '장대의 탄성 복원력이 선수를 허공으로 솟구치게 만들어 높은 가로대를 넘게 돕습니다.'
+      },
+      { 
+        id: 'sneaker_sole', 
+        name: '운동화 에어/쿠션 밑창', 
+        icon: 'fa-shoe-prints',
+        category: '고탄성 폼 및 에어포켓',
+        deformPhysics: '달리기 착지 순간 발뒤꿈치의 고무 폼과 에어백이 체중의 3배에 달하는 충격으로 납작하게 압축됩니다.',
+        restorePhysics: '발이 지면을 떠나기 직전 압축되었던 에어 폼이 부풀어 오르며 원상태로 복원됩니다.',
+        effect: '복원 탄성력이 지면을 박차는 에너지를 보태어 관절을 보호하고 다음 도약을 돕습니다.'
+      }
+    ];
+
+    const ACTION_MAP = {
+      'trampoline': [
+        { id: 'jump_high', label: '공중으로 높이 솟구치기', icon: 'fa-arrow-up' },
+        { id: 'deep_landing', label: '힘껏 발을 굴러 착지하기', icon: 'fa-arrows-down-to-line' },
+        { id: 'continuous_bounce', label: '리드미컬하게 연속 바운스하기', icon: 'fa-wave-square' }
+      ],
+      'ping_pong_ball': [
+        { id: 'paddle_impact', label: '탁구 라켓으로 공을 치는 순간', icon: 'fa-burst' },
+        { id: 'table_topspin', label: '탑스핀을 걸어 탁구대에 바운스하기', icon: 'fa-rotate' },
+        { id: 'continuous_rally', label: '라켓 위에서 통통 연속 튕기기', icon: 'fa-arrows-up-down' }
+      ],
+      'basketball': [
+        { id: 'hard_dribble', label: '코트 바닥에 강하게 드리블하기', icon: 'fa-hand-back-fist' },
+        { id: 'backboard_rebound', label: '백보드에 공을 튕겨 바운스하기', icon: 'fa-arrows-split-up-and-left' },
+        { id: 'chest_pass_bounce', label: '바닥을 거치는 바운드 패스하기', icon: 'fa-share' }
+      ],
+      'tennis_ball': [
+        { id: 'smash_impact', label: '라켓 중앙으로 풀파워 스매시 치기', icon: 'fa-burst' },
+        { id: 'court_serve_bounce', label: '강력한 서브 후 바닥에 튕기기', icon: 'fa-bolt' },
+        { id: 'wall_hit', label: '연습장 벽에 공을 연속으로 치기', icon: 'fa-border-all' }
+      ],
+      'bow': [
+        { id: 'draw_fully', label: '턱 끝까지 팽팽하게 활시위 당기기', icon: 'fa-arrow-right-to-bracket' },
+        { id: 'release_arrow', label: '시위를 놓아 화살이 튕겨나가는 순간', icon: 'fa-location-arrow' },
+        { id: 'aim_focused', label: '최대 장력을 유지하며 과녁 조준하기', icon: 'fa-eye' }
+      ],
+      'rubber_band': [
+        { id: 'pull_both_hands', label: '양손으로 한계까지 팽팽히 당기기', icon: 'fa-arrows-left-right' },
+        { id: 'snap_launch', label: '손가락에 걸어 타겟을 향해 날리기', icon: 'fa-paper-plane' },
+        { id: 'resistance_exercise', label: '어깨 너비로 벌리며 근력 운동하기', icon: 'fa-dumbbell' }
+      ],
+      'diving_board': [
+        { id: 'board_stomp', label: '끝단에서 온몸으로 보드 밟아 누르기', icon: 'fa-arrow-down' },
+        { id: 'airborne_takeoff', label: '보드의 반동으로 공중으로 솟구치기', icon: 'fa-dove' },
+        { id: 'rhythmic_jump', label: '보드 위에서 두 발로 반동 모으기', icon: 'fa-water' }
+      ],
+      'pole_vault': [
+        { id: 'plant_and_bend', label: '장대를 박스에 꽂고 온몸으로 휘기', icon: 'fa-bezier-curve' },
+        { id: 'straighten_and_clear', label: '장대가 펴지며 가로대를 훌쩍 넘기', icon: 'fa-chart-line' },
+        { id: 'swing_up', label: '휜 장대에 매달려 거꾸로 솟구치기', icon: 'fa-rotate-right' }
+      ],
+      'sneaker_sole': [
+        { id: 'sprint_heel_strike', label: '전력 질주하며 지면 강하게 딛기', icon: 'fa-gauge-high' },
+        { id: 'jump_landing_cushion', label: '높은 점프 후 무릎 굽혀 착지하기', icon: 'fa-down-long' },
+        { id: 'push_off_ground', label: '지면을 박차고 앞으로 튀어나가기', icon: 'fa-forward-fast' }
+      ]
+    };
+
+    const PLACES = [
+      { id: 'school_gym', name: '학교 체육관', icon: 'fa-building-columns' },
+      { id: 'basketball_court', name: '우레탄 농구 코트', icon: 'fa-layer-group' },
+      { id: 'tennis_court', name: '클레이 테니스 코트', icon: 'fa-border-none' },
+      { id: 'school_playground', name: '야외 학교 운동장', icon: 'fa-flag' },
+      { id: 'neighborhood_park', name: '푸른 공원 잔디밭', icon: 'fa-tree' },
+      { id: 'archery_range', name: '잔디 양궁 훈련장', icon: 'fa-bullseye' },
+      { id: 'diving_pool', name: '실내 다이빙 수영장', icon: 'fa-water' },
+      { id: 'athletics_stadium', name: '종합 육상 경기장', icon: 'fa-trophy' },
+      { id: 'science_lab', name: '밝은 과학 실험실', icon: 'fa-flask' }
+    ];
+
+    /* ─────────────────────────────────────────────────────────────
+       VISUAL STYLES
+       The 'photoStyle' field matches the Vercel server's styleMap keys
+       (e.g., "3D ANIMATION" -> /public/style-references/3d-animation.jpg).
+       ───────────────────────────────────────────────────────────── */
+    const VISUAL_STYLES = [
+      { 
+        id: '3d_animation', 
+        photoStyle: '3D ANIMATION',
+        name: '✨ 3D ANIMATION', 
+        desc: '극장용 3D 애니메이션 스타일. 풍부한 표정, 부드러운 스튜디오 조명과 역동적 도약.', 
+        icon: 'fa-cube',
+        promptDirectives: 'STYLE - 3D ANIMATION: premium 3D animated blockbuster feature film style, charming stylized 3D proportions, energetic jumping pose, perfectly modeled clothing and hair physics, dramatic overhead stage spotlight, glowing dynamic motion sparkles, velvety dark atmospheric background.'
+      },
+      { 
+        id: 'elastic_impact', 
+        photoStyle: 'ELASTIC IMPACT',
+        name: '⚡ ELASTIC IMPACT', 
+        desc: '3D 캐릭터 + 회전하는 황금빛 에너지 리본과 폭발적인 컬러 파티클 분진.', 
+        icon: 'fa-bolt',
+        promptDirectives: 'STYLE - ELASTIC IMPACT: Pixar and Disney animated feature-film visual style, beautiful stylized 3D character design with expressive joyful face, subsurface scattering, dramatic rim lighting, swirling luminous golden energy ribbons curling around the action, massive explosion of vibrant glowing kinetic powder particles bursting outward, dark high-contrast cinematic background, Octane render 3D quality.'
+      },
+      { 
+        id: 'dream_lab', 
+        photoStyle: 'DREAM LAB',
+        name: '🌈 DREAM LAB', 
+        desc: '환상적인 시안/골드빛 오로라 궤적과 허공에 떠 있는 발광 파티클 연출.', 
+        icon: 'fa-wand-magic-sparkles',
+        promptDirectives: 'STYLE - DREAM LAB: magical theatrical 3D animated movie scene, stylized 3D character, glowing cyan and warm golden flowing light coils, shimmering floating star-dust and confetti particles suspended in mid-air, soft volumetric spotlight, rich 3D materials, delightful animated wonder.'
+      },
+      { 
+        id: 'game_cinematic', 
+        photoStyle: 'GAME CINEMATIC',
+        name: '🎮 GAME CINEMATIC', 
+        desc: '스타일라이즈드 3D 액션 시네마틱. 강렬한 림라이트와 눈부신 탄성 에너지 링.', 
+        icon: 'fa-gamepad',
+        promptDirectives: 'STYLE - GAME CINEMATIC: stylized 3D cinematic action artwork, powerful dynamic perspective, intense rim lighting separating the subject from the dark arena, concentrated glowing kinetic light rings pulsing with elasticity, flying dust and spark particles, heroic high-energy composition.'
+      },
+      { 
+        id: 'sports_anime', 
+        photoStyle: 'SPORTS ANIME',
+        name: '🔥 SPORTS ANIME', 
+        desc: '역동적인 원근법의 3D 액션 컷. 탄성 찰나를 휘감는 스피드 광선과 강렬한 파티클.', 
+        icon: 'fa-fire-flame-curved',
+        promptDirectives: 'STYLE - SPORTS ANIME: stylized 3D anime-inspired feature film frame, extreme foreshortening, brilliant glowing energy arcs wrapping around the elastic contact zone, bursting kinetic powder cloud, vibrant saturated highlights against deep moody backdrop.'
+      },
+      { 
+        id: 'movie_snap', 
+        photoStyle: 'MOVIE SNAP',
+        name: '🎬 MOVIE SNAP', 
+        desc: '대작 3D 애니메이션의 명장면. 시네마틱 스포트라이트와 흩날리는 감성 파티클.', 
+        icon: 'fa-film',
+        promptDirectives: 'STYLE - MOVIE SNAP: blockbuster theatrical 3D animation movie still, expressive storytelling, dramatic overhead rim lighting, swirling luminous trails following the kinetic movement, delicate floating bokeh particles, premium 3D render.'
+      },
+      { 
+        id: 'ultra_slow_motion', 
+        photoStyle: 'ULTRA SLOW MOTION',
+        name: '🔬 ULTRA SLOW MOTION', 
+        desc: '초근접 3D 매크로. 찌그러지는 탄성체와 사방으로 분출하는 고채도 파티클 클라우드.', 
+        icon: 'fa-snowflake',
+        promptDirectives: 'STYLE - ULTRA SLOW MOTION: high-speed 3D macro freeze-frame, hyper-detailed elastic deformation at impact point, massive fountain of glowing colored chalk and powder particles spraying dynamically outward, dark moody contrast, crisp cinematic focus.'
+      }
+    ];
+
+    /* ─────────────────────────────────────────────────────────────
+       2. APPLICATION STATE MANAGEMENT
+       ───────────────────────────────────────────────────────────── */
+    const state = {
+      step: 1,
+      who: null,
+      object: null,
+      action: null,
+      place: null,
+      moment: null,
+      style: null,
+      // Gamification
+      xp: 0,
+      level: 1,
+      exploredObjects: new Set(),
+      exploredMoments: new Set(),
+      snappedCount: 0,
+      badges: {
+        rookie: false,
+        explorer: false,
+        master: false
+      },
+      // Output
+      generatedImageUrl: null,
+      generatedImageBlob: null,
+      lastPayload: null
+    };
+
+    /* ─────────────────────────────────────────────────────────────
+       3. INITIAL DOM GRID RENDERING
+       ───────────────────────────────────────────────────────────── */
+    function renderGrids() {
+      // Step 1: Who Grid
+      const whoContainer = document.getElementById('whoGrid');
+      if (whoContainer) {
+        whoContainer.innerHTML = WHO_LIST.map(item => `
+          <div onclick="selectWho('${item.id}')" id="card-who-${item.id}" class="who-card p-3 rounded-2xl border border-slate-800 bg-dark-850 hover:border-neon-lime/60 transition-all cursor-pointer flex flex-col items-center text-center group">
+            <div class="w-11 h-11 rounded-xl bg-dark-800 text-slate-400 group-hover:text-neon-lime group-hover:bg-neon-lime/10 flex items-center justify-center text-lg mb-2 transition-all">
+              <i class="fa-solid ${item.icon}"></i>
+            </div>
+            <span class="text-xs font-bold text-slate-200 group-hover:text-white">${item.name}</span>
+          </div>
+        `).join('');
+      }
+
+      // Step 2: Elastic Object Grid
+      const objectContainer = document.getElementById('objectGrid');
+      if (objectContainer) {
+        objectContainer.innerHTML = ELASTIC_OBJECTS.map(item => `
+          <div onclick="selectObject('${item.id}')" id="card-obj-${item.id}" class="obj-card p-3 rounded-2xl border border-slate-800 bg-dark-850 hover:border-neon-cyan/60 transition-all cursor-pointer flex flex-col items-center text-center group">
+            <div class="w-11 h-11 rounded-xl bg-dark-800 text-slate-400 group-hover:text-neon-cyan group-hover:bg-neon-cyan/10 flex items-center justify-center text-lg mb-2 transition-all">
+              <i class="fa-solid ${item.icon}"></i>
+            </div>
+            <span class="text-xs font-bold text-slate-200 group-hover:text-white">${item.name}</span>
+            <span class="text-[10px] text-slate-500 mt-0.5">${item.category}</span>
+          </div>
+        `).join('');
+      }
+
+      // Step 4: Place Grid
+      const placeContainer = document.getElementById('placeGrid');
+      if (placeContainer) {
+        placeContainer.innerHTML = PLACES.map(item => `
+          <div onclick="selectPlace('${item.id}')" id="card-place-${item.id}" class="place-card p-3 rounded-2xl border border-slate-800 bg-dark-850 hover:border-neon-lime/60 transition-all cursor-pointer flex flex-col items-center text-center group">
+            <div class="w-11 h-11 rounded-xl bg-dark-800 text-slate-400 group-hover:text-neon-lime group-hover:bg-neon-lime/10 flex items-center justify-center text-lg mb-2 transition-all">
+              <i class="fa-solid ${item.icon}"></i>
+            </div>
+            <span class="text-xs font-bold text-slate-200 group-hover:text-white">${item.name}</span>
+          </div>
+        `).join('');
+      }
+
+      // Step 6: Visual Style Grid
+      const styleContainer = document.getElementById('styleGrid');
+      if (styleContainer) {
+        styleContainer.innerHTML = VISUAL_STYLES.map(item => `
+          <div onclick="selectStyle('${item.id}')" id="card-style-${item.id}" class="style-card p-3.5 rounded-2xl border border-slate-800 bg-dark-850 hover:border-neon-cyan/60 transition-all cursor-pointer flex flex-col items-start group">
+            <div class="w-9 h-9 rounded-lg bg-dark-800 text-slate-400 group-hover:text-neon-cyan group-hover:bg-neon-cyan/10 flex items-center justify-center text-base mb-2 transition-all">
+              <i class="fa-solid ${item.icon}"></i>
+            </div>
+            <span class="text-xs font-bold text-slate-200 group-hover:text-white">${item.name}</span>
+            <span class="text-[10px] text-slate-400 mt-1 leading-tight">${item.desc}</span>
+          </div>
+        `).join('');
+      }
+
+      // Default Style selection setup (3D ANIMATION as default)
+      if (!state.style && VISUAL_STYLES.length > 0) {
+        state.style = VISUAL_STYLES[0];
+        highlightSelected('style-card', `card-style-${VISUAL_STYLES[0].id}`, 'border-neon-cyan', 'bg-neon-cyan/10');
+      }
+    }
+
+    // Run immediately when DOM is ready
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', () => {
+        renderGrids();
+        updateLiveScene();
+      });
+    } else {
+      renderGrids();
+      updateLiveScene();
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       4. SELECTION HANDLERS & STEP NAVIGATION
+       ───────────────────────────────────────────────────────────── */
+    function selectWho(id) {
+      state.who = WHO_LIST.find(x => x.id === id);
+      highlightSelected('who-card', `card-who-${id}`, 'border-neon-lime', 'bg-neon-lime/10');
+      addXp(10, '인물 선택 완료!');
+      updateLiveScene();
+      setTimeout(() => goToStep(2), 220);
+    }
+
+    function selectObject(id) {
+      state.object = ELASTIC_OBJECTS.find(x => x.id === id);
+      highlightSelected('obj-card', `card-obj-${id}`, 'border-neon-cyan', 'bg-neon-cyan/10');
+      state.exploredObjects.add(id);
+      checkBadges();
+
+      state.action = null;
+      renderActionGrid(id);
+      updateMomentCardSubtext(state.object);
+
+      addXp(10, '탄성체 선택 완료!');
+      updateLiveScene();
+      setTimeout(() => goToStep(3), 220);
+    }
+
+    function renderActionGrid(objectId) {
+      const actions = ACTION_MAP[objectId] || [
+        { id: 'default_interact', label: '힘을 주어 변형시키기', icon: 'fa-hand' },
+        { id: 'default_release', label: '놓아서 튕겨나가게 하기', icon: 'fa-burst' }
+      ];
+
+      const actionContainer = document.getElementById('actionGrid');
+      actionContainer.innerHTML = actions.map(act => `
+        <div onclick="selectAction('${act.id}', '${act.label}')" id="card-act-${act.id}" class="act-card p-4 rounded-2xl border border-slate-800 bg-dark-850 hover:border-neon-lime transition-all cursor-pointer flex items-center gap-3 group">
+          <div class="w-11 h-11 rounded-xl bg-dark-800 text-slate-400 group-hover:text-neon-lime group-hover:bg-neon-lime/10 flex items-center justify-center text-lg flex-shrink-0 transition-all">
+            <i class="fa-solid ${act.icon}"></i>
+          </div>
+          <div>
+            <h5 class="text-sm font-bold text-slate-200 group-hover:text-white">${act.label}</h5>
+            <span class="text-[10px] text-slate-500">물리적 외력 상호작용</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function selectAction(id, label) {
+      state.action = { id, label };
+      highlightSelected('act-card', `card-act-${id}`, 'border-neon-lime', 'bg-neon-lime/10');
+      addXp(10, '행동 선택 완료!');
+      updateLiveScene();
+      setTimeout(() => goToStep(4), 220);
+    }
+
+    function selectPlace(id) {
+      state.place = PLACES.find(x => x.id === id);
+      highlightSelected('place-card', `card-place-${id}`, 'border-neon-lime', 'bg-neon-lime/10');
+      addXp(10, '장소 설정 완료!');
+      updateLiveScene();
+      setTimeout(() => goToStep(5), 220);
+    }
+
+    function updateMomentCardSubtext(obj) {
+      if (!obj) return;
+      document.getElementById('momentDesc1').textContent = `예: ${obj.name}에 외력이 가해져 막 모양이 찌그러지기 시작하는 찰나`;
+      document.getElementById('momentDesc2').textContent = `예: ${obj.name}이(가) 가장 심하게 찌그러지거나 늘어난 최대 변형 정점`;
+      document.getElementById('momentDesc3').textContent = `예: ${obj.name}이(가) 원래 모양으로 튕겨 돌아오며 물체를 솟구치게 하는 찰나`;
+    }
+
+    function selectMoment(momentType) {
+      const momentDict = {
+        'deforming': {
+          id: 'deforming',
+          label: '① 변형되는 순간',
+          sub: '외부 힘을 받아 모양이 변하고 있는 중',
+          color: 'neon-cyan',
+          icon: 'fa-arrows-down-to-line'
+        },
+        'max': {
+          id: 'max',
+          label: '② 최대 변형 순간',
+          sub: '가장 극단적으로 찌그러지거나 늘어난 정점',
+          color: 'neon-amber',
+          icon: 'fa-compress'
+        },
+        'restoring': {
+          id: 'restoring',
+          label: '③ 복원되는 순간',
+          sub: '원래 모양으로 돌아오며 물체를 밀어내는 순간',
+          color: 'neon-lime',
+          icon: 'fa-bolt-lightning'
+        }
+      };
+
+      state.moment = momentDict[momentType];
+      highlightSelected('moment-card', `card-moment-${momentType}`, 'border-neon-lime', 'bg-neon-lime/10');
+      state.exploredMoments.add(momentType);
+      checkBadges();
+
+      addXp(15, '과학 탄성 순간 선택!');
+      updateLiveScene();
+      setTimeout(() => goToStep(6), 220);
+    }
+
+    function selectStyle(id) {
+      state.style = VISUAL_STYLES.find(x => x.id === id) || VISUAL_STYLES[0];
+      highlightSelected('style-card', `card-style-${id}`, 'border-neon-cyan', 'bg-neon-cyan/10');
+      addXp(10, '시네마틱 스타일 선택 완료!');
+      updateLiveScene();
+    }
+
+    function highlightSelected(groupClass, activeId, borderClass, bgClass) {
+      document.querySelectorAll(`.${groupClass}`).forEach(el => {
+        el.classList.remove(borderClass, bgClass, 'ring-2', 'ring-neon-lime/40', 'ring-neon-cyan/40');
+      });
+      const target = document.getElementById(activeId);
+      if (target) {
+        target.classList.add(borderClass, bgClass);
+      }
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       5. CINEMATIC SCIENCE PROMPT COMPILER
+       ALL STYLES: ANIMATED ARTWORK ONLY — NOT A PHOTOGRAPH
+       VISUAL HIERARCHY:
+       ① ART STYLE (MANDATORY ANIMATED DECLARATION + STYLE DIRECTIVE)
+       ② ELASTIC MOMENT (CLIMAX SCIENTIFIC PHENOMENON + ENERGY GLOW)
+       ③ ELASTIC OBJECT (HERO FOCAL OBJECT)
+       ④ ACTION (KINETIC PHYSICAL INTERACTION)
+       ⑤ CHARACTER (AGE-APPROPRIATE STYLIZED ANIMATED CHARACTER)
+       ⑥ LOCATION (CLEARLY RECOGNIZABLE STYLIZED ANIMATED ENVIRONMENT)
+       ⑦ NEGATIVE CONSTRAINTS (ABSOLUTE PROHIBITION OF PHOTOGRAPHY / REALISM)
+       ───────────────────────────────────────────────────────────── */
+    function compileCinematicSciencePrompt() {
+      const currentMoment = state.moment?.id || 'max';
+      const objectId = state.object?.id || 'trampoline';
+      const styleId = state.style?.id || 'elastic_impact';
+      const whoId = state.who?.id || 'middle_schooler';
+      const placeId = state.place?.id || 'school_gym';
+
+      // ───────────────────────────────────────────────
+      // ① MANDATORY 3D ANIMATED FEATURE FILM STYLE HEADER
+      // ───────────────────────────────────────────────
+      const universalAnimatedHeader = "VISUAL MEDIUM: PREMIUM 3D ANIMATED FEATURE FILM ARTWORK (PIXAR AND DISNEY ANIMATION AESTHETICS). NOT A REAL PHOTOGRAPH, NOT LIVE-ACTION FOOTAGE. Rendered as a breathtaking 3D cinematic animated film still with charming stylized character design, expressive eyes and smile, subsurface scattering, dramatic rim lighting, swirling luminous energy ribbons, and explosive bursts of vibrant glowing particles against a moody dark atmospheric background.";
+      
+      const activeStyleObj = state.style || VISUAL_STYLES[0];
+      const styleDirectives = activeStyleObj.promptDirectives || "STYLE: Pixar-style 3D animation, glowing golden energy trails, bursting vibrant powder particles, dramatic rim lighting.";
+
+      // Camera Composition Selection
+      let cameraComp = "";
+      if (objectId === 'ping_pong_ball' || objectId === 'tennis_ball') {
+        cameraComp = "Camera framing: dramatic macro close-up focused right on the elastic ball, capturing the dense spray of glowing color powder and particles bursting outward at high speed.";
+      } else if (objectId === 'trampoline' || objectId === 'diving_board') {
+        cameraComp = "Camera framing: dynamic low-angle perspective looking upward, highlighting the deeply flexed elastic structure and the character suspended in dynamic mid-air action surrounded by swirling glowing ribbons of light.";
+      } else {
+        cameraComp = "Camera framing: heroic action composition with dramatic cinematic lighting, extreme perspective, and glowing energy trails curling around the character and elastic object.";
+      }
+
+      const part1_ArtStyle = `${universalAnimatedHeader} | ${styleDirectives} | ${cameraComp}`;
+
+      // ───────────────────────────────────────────────
+      // ② ELASTIC MOMENT (CLIMAX SCIENTIFIC PHENOMENON + LUMINOUS LIGHT TRAILS & BURSTING PARTICLES)
+      // ───────────────────────────────────────────────
+      let part2_ElasticMoment = "";
+      if (currentMoment === 'deforming') {
+        part2_ElasticMoment = "Primary Visual Climax - Elastic Moment (Stage 1: Deforming): The moment of initial dynamic impact and strain. The elastic structure is visibly bending, with bright glowing cyan and golden energy filaments beginning to spiral around the contact point and micro-luminous particles kicking into the air.";
+      } else if (currentMoment === 'max') {
+        part2_ElasticMoment = "Primary Visual Climax - Elastic Moment (Stage 2: Peak Strain & Maximum Deformation): The peak instant of maximum physical deformation. The elastic material is deeply compressed or curved to its limit. Blazing golden-orange energy swirls and glowing spiral light trails tightly wrap the deformation zone, with intense glowing impact rings and sparks radiating outward.";
+      } else {
+        // restoring
+        part2_ElasticMoment = "Primary Visual Climax - Elastic Moment (Stage 3: Explosive Restoration & Spring): The thrilling rebound instant where the elastic structure snaps back and propels the subject into the air. Massive ribbons of swirling golden light wrap around the character, with a spectacular fountain of luminous powder particles and floating celebratory confetti bursting in all directions.";
+      }
+
+      // ───────────────────────────────────────────────
+      // ③ ELASTIC OBJECT (HERO FOCAL OBJECT)
+      // ───────────────────────────────────────────────
+      const objMap = {
+        'trampoline': 'a heavy-duty stylized 3D circular trampoline with an elastic bouncing mat, prominent tension rim springs, and reinforced metallic perimeter base',
+        'ping_pong_ball': 'a crisp stylized 3D white table tennis ball making high-speed contact with a wooden table tennis paddle rubber face, with micro-powder particles spraying outward',
+        'basketball': 'a vibrant textured 3D basketball with deep black grip channels, surrounded by swirling spiral ribbons of golden light as it reaches the rim or floor',
+        'tennis_ball': 'a tactile fuzzy optic-yellow 3D tennis ball exploding with a massive cloud of bright yellow and lime glowing powder particles upon contact',
+        'bow': 'an Olympic-style recurve bow with curved composite limbs glowing with golden tensile energy and a vibrating bowstring',
+        'rubber_band': 'a thick translucent elastic latex band stretched diagonally across the frame with bright internal luminescence and tensile light glints',
+        'diving_board': 'a flexible textured 3D diving board bowed deeply downward toward the sparkling water with glowing aqua stress lines along its flexed curve',
+        'pole_vault': 'a high-performance composite vaulting pole bent into an extreme U-curve, pulsing with bright glowing kinetic energy lines',
+        'sneaker_sole': 'an athletic running sneaker with a glowing translucent responsive air cushion midsole compressed against the ground with energy shockwaves'
+      };
+
+      const part3_ElasticObject = `Hero Focal Object: ${objMap[objectId] || state.object?.name || 'elastic object'}. The stylized 3D construction, flexed curvature, and radiant glow of the elastic object dominate the scene.`;
+
+      // ───────────────────────────────────────────────
+      // ④ ACTION (KINETIC PHYSICAL INTERACTION)
+      // ───────────────────────────────────────────────
+      let synchronizedAction = "";
+      if (objectId === 'trampoline') {
+        if (currentMoment === 'max') {
+          synchronizedAction = "Planted at the deep concave center of the trampoline mat, knees bent absorbing maximum force with glowing stress lines converging under the feet right before takeoff.";
+        } else if (currentMoment === 'restoring') {
+          synchronizedAction = "Joyfully propelled high up into the air above the trampoline with arms and legs outstretched in a triumphant flying pose, with swirling golden light ribbons trailing behind and floating confetti particles all around.";
+        } else {
+          synchronizedAction = "Descending onto the trampoline mat as initial landing deformation begins.";
+        }
+      } else if (objectId === 'basketball') {
+        if (currentMoment === 'restoring' || currentMoment === 'max') {
+          synchronizedAction = "Executing a magnificent soaring slam dunk or rapid floor rebound, with spiraling trails of luminous golden light curling around the character's body and ball.";
+        } else {
+          synchronizedAction = "Dribbling the ball downward with speed lines and glowing contact particles.";
+        }
+      } else if (objectId === 'tennis_ball') {
+        synchronizedAction = "Striking the ball at high speed, generating an explosive fountain of glowing neon-yellow chalk and dust particles spraying dramatically across the dark backdrop.";
+      } else {
+        const actionDesc = state.action?.label || 'dynamic athletic action';
+        if (currentMoment === 'restoring') {
+          synchronizedAction = `Soaring high into the air as the ${state.object?.name} snaps back, enveloped in luminous swirling light trails and glowing spark particles.`;
+        } else if (currentMoment === 'max') {
+          synchronizedAction = `Applying peak force to the ${state.object?.name}, holding it at its maximum flexed or compressed limit with intense glowing stress lines.`;
+        } else {
+          synchronizedAction = `Performing ${actionDesc} as dynamic deformation and glowing energy begin to gather.`;
+        }
+      }
+
+      const part4_Action = `Physical Kinetic Interaction: ${synchronizedAction}`;
+
+      // ───────────────────────────────────────────────
+      // ⑤ CHARACTER (PIXAR/DISNEY STYLIZED 3D ANIMATED CHARACTER)
+      // ───────────────────────────────────────────────
+      const animatedWhoMap = {
+        'middle_schooler': 'a charming, spirited stylized 3D animated Korean middle school student character with big expressive eyes, a joyful beaming smile, animated hair strands, and colorful sportswear',
+        'high_schooler': 'an energetic, stylish 3D animated Korean high school student character with expressive anime-inspired 3D features, smiling face, and dynamic athletic team uniform',
+        'elementary_student': 'an adorable, cheerful young 3D animated child character with playful Pixar-like proportions, joyful smile, and colorful athletic gear',
+        'two_friends': 'two joyful stylized 3D animated student companions leaping with beaming smiles in synchronized athletic excitement',
+        'basketball_player': 'a charismatic stylized 3D animated basketball athlete character in an athletic team jersey, leaping towards the hoop with swirling golden light ribbons',
+        'soccer_player': 'an agile stylized 3D animated soccer athlete in a colorful team kit, captured mid-kick with glowing impact trails',
+        'tennis_player': 'a dynamic stylized 3D animated tennis player with focused yet joyful expression, swinging with full momentum',
+        'archery_player': 'a focused stylized 3D animated archer character in a sleek jersey, aiming with bright energy gathering along the bow',
+        'gymnast': 'a graceful stylized 3D animated gymnast leaping in mid-air with elegant posture and glowing light ribbons curling around her',
+        'runner': 'a determined stylized 3D animated runner sprinting forward with golden speed trails and dust particles kicking up',
+        'cyclist': 'an adventurous stylized 3D animated cyclist pedaling with glowing wheel trails and sparkling dust',
+        'family_with_dog': 'a happy stylized 3D animated character accompanied by a fluffy playful 3D animated dog leaping joyfully together'
+      };
+
+      const part5_Character = `3D Animated Character: ${animatedWhoMap[whoId] || 'an expressive, charming stylized 3D animated character'}. Rendered with rich subsurface scattering, vibrant clothing, and joyful action pose. Strictly avoid static portraits or real human photos; this is an expressive 3D animated character.`;
+
+      // ───────────────────────────────────────────────
+      // ⑥ LOCATION (DARK MOODY STYLIZED ENVIRONMENT WITH DRAMATIC LIGHTING)
+      // ───────────────────────────────────────────────
+      const animatedPlaceMap = {
+        'school_gym': 'inside a stylized 3D animated school gym with moody dark atmospheric background, polished wooden court floor catching the reflection of golden light ribbons, basketball hoops, and dramatic overhead stage lighting',
+        'basketball_court': 'at an outdoor stylized 3D basketball court under deep dramatic evening sky with warm overhead floodlights, colorful court lines, and glowing golden ribbons of light',
+        'tennis_court': 'on a stylized 3D tennis court surface with deep moody contrast, where bright glowing particles and chalk dust pop brilliantly against the dark backdrop',
+        'school_playground': 'on a stylized 3D animated school track and field bathed in dramatic atmospheric evening light with colorful glowing energy arcs',
+        'neighborhood_park': 'in a magical stylized 3D animated park with manicured lawn, stylized leafy trees in soft focus, and floating glowing particles under moonlight',
+        'archery_range': 'at an outdoor stylized 3D grass archery range with circular target butts softly lit against a dramatic twilight sky',
+        'diving_pool': 'inside an indoor stylized 3D aquatic diving stadium with shimmering deep turquoise water reflecting glowing light trails under theatrical spotlights',
+        'athletics_stadium': 'inside a stylized 3D athletics stadium with dramatic spotlights illuminating the action against dark stadium seating',
+        'science_lab': 'inside a cozy stylized 3D physics laboratory filled with wonder, glowing flasks, and soft atmospheric backlighting'
+      };
+
+      const part6_Location = `Stylized Environment: ${animatedPlaceMap[placeId] || 'stylized 3D athletic arena with moody contrast and dramatic spotlighting'}. The dark atmospheric surroundings make the glowing light ribbons and bursting colored particles pop with dazzling vibrancy.`;
+
+      // ───────────────────────────────────────────────
+      // ⑦ NEGATIVE CONSTRAINTS
+      // ───────────────────────────────────────────────
+      const part7_Negative = "NEGATIVE CONSTRAINTS: Do not generate a photograph, no live-action, no photorealistic, no realistic camera photograph, no DSLR, no camera film grain, no documentary photo, no real human skin photo, no flat 2D clip art, no stick figures, no dull lighting, no washed-out colors, no plain empty white backgrounds, no text labels, no mathematical equations, no watermarks.";
+
+      return `${part1_ArtStyle} | ${part2_ElasticMoment} | ${part3_ElasticObject} | ${part4_Action} | ${part5_Character} | ${part6_Location} | ${part7_Negative}`;
+    }
+
+    function updateLiveScene() {
+      updateSlotUI('slot-who', state.who, {
+        icon: state.who ? state.who.icon : 'fa-user-lock',
+        label: state.who ? state.who.name : '선택되지 않음 (?)',
+        color: 'text-neon-cyan'
+      });
+      updateSlotUI('slot-object', state.object, {
+        icon: state.object ? state.object.icon : 'fa-shapes',
+        label: state.object ? state.object.name : '선택되지 않음 (?)',
+        color: 'text-neon-lime'
+      });
+      updateSlotUI('slot-action', state.action, {
+        icon: state.action ? 'fa-person-running' : 'fa-person-running',
+        label: state.action ? state.action.label : '선택되지 않음 (?)',
+        color: 'text-neon-cyan'
+      });
+      updateSlotUI('slot-place', state.place, {
+        icon: state.place ? state.place.icon : 'fa-location-dot',
+        label: state.place ? state.place.name : '선택되지 않음 (?)',
+        color: 'text-neon-lime'
+      });
+      updateSlotUI('slot-moment', state.moment, {
+        icon: state.moment ? state.moment.icon : 'fa-bolt',
+        label: state.moment ? state.moment.label : '선택되지 않음 (?)',
+        color: 'text-neon-amber'
+      });
+      updateSlotUI('slot-style', state.style, {
+        icon: state.style ? state.style.icon : 'fa-palette',
+        label: state.style ? state.style.name : '선택되지 않음 (?)',
+        color: 'text-neon-cyan'
+      });
+
+      const totalSteps = 6;
+      let filled = 0;
+      if (state.who) filled++;
+      if (state.object) filled++;
+      if (state.action) filled++;
+      if (state.place) filled++;
+      if (state.moment) filled++;
+      if (state.style) filled++;
+
+      const pct = Math.round((filled / totalSteps) * 100);
+      document.getElementById('sceneCompleteness').textContent = `${pct}%`;
+
+      const hintBox = document.getElementById('liveScientificHint');
+      const statusTag = document.getElementById('physicsStatusTag');
+
+      if (state.object && state.moment) {
+        statusTag.textContent = `${state.object.name} • ${state.moment.label.split(' ')[1]}`;
+        statusTag.className = "text-neon-lime bg-neon-lime/20 px-2.5 py-0.5 rounded-full font-bold border border-neon-lime/40 animate-pulse-fast";
+
+        if (state.moment.id === 'deforming') {
+          hintBox.innerHTML = `<span class="text-neon-cyan font-bold"><i class="fa-solid fa-arrows-down-to-line mr-1"></i> 변형 포착:</span> 외력에 의해 <strong>${state.object.name}</strong>의 외형이 막 찌그러지는 초동 상태입니다.`;
+        } else if (state.moment.id === 'max') {
+          hintBox.innerHTML = `<span class="text-neon-amber font-bold"><i class="fa-solid fa-compress mr-1"></i> 최대 변형 포착:</span> <strong>${state.object.name}</strong>에 축적된 탄성 잠재 에너지가 극대화된 정지 순간입니다.`;
+        } else if (state.moment.id === 'restoring') {
+          hintBox.innerHTML = `<span class="text-neon-lime font-bold"><i class="fa-solid fa-bolt-lightning mr-1"></i> 복원력 방출:</span> <strong>${state.object.name}</strong>이 원래 모양으로 돌아오며 폭발적인 힘으로 밀어냅니다!`;
+        }
+      } else {
+        statusTag.textContent = "대기 중";
+        statusTag.className = "text-slate-400 bg-slate-800 px-2.5 py-0.5 rounded-full font-bold";
+      }
+
+      const snapBtn = document.getElementById('snapButton');
+      const completionNotice = document.getElementById('completionNotice');
+
+      if (filled === totalSteps) {
+        snapBtn.disabled = false;
+        snapBtn.className = "w-full py-4 px-6 rounded-2xl font-display font-black text-base md:text-lg tracking-wider uppercase transition-all duration-300 flex items-center justify-center gap-3 bg-gradient-to-r from-neon-lime to-neon-cyan text-dark-950 hover:brightness-110 shadow-xl shadow-neon-lime/30 cursor-pointer animate-glow-lime";
+        completionNotice.classList.remove('hidden');
+      } else {
+        snapBtn.disabled = false;
+        snapBtn.className = "w-full py-4 px-6 rounded-2xl font-display font-black text-base md:text-lg tracking-wider uppercase transition-all duration-300 flex items-center justify-center gap-3 bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer shadow-lg";
+        completionNotice.classList.add('hidden');
+      }
+    }
+
+    function updateSlotUI(slotId, data, config) {
+      const slot = document.getElementById(slotId);
+      const iconContainer = slot.querySelector('.slot-icon');
+      const label = slot.querySelector('.slot-label');
+
+      if (data) {
+        slot.classList.remove('border-dashed', 'border-slate-800', 'bg-dark-900/60');
+        slot.classList.add('border-solid', 'border-slate-700', 'bg-dark-850', 'shadow-md');
+        iconContainer.innerHTML = `<i class="fa-solid ${config.icon} ${config.color}"></i>`;
+        iconContainer.classList.remove('bg-dark-800', 'text-slate-500');
+        iconContainer.classList.add('bg-dark-900');
+        label.textContent = config.label;
+        label.classList.remove('text-slate-400');
+        label.classList.add('text-white', 'font-bold');
+      } else {
+        slot.classList.add('border-dashed', 'border-slate-800', 'bg-dark-900/60');
+        slot.classList.remove('border-solid', 'border-slate-700', 'bg-dark-850', 'shadow-md');
+        iconContainer.innerHTML = `<i class="fa-solid ${config.icon}"></i>`;
+        iconContainer.classList.add('bg-dark-800', 'text-slate-500');
+        iconContainer.classList.remove('bg-dark-900');
+        label.textContent = '선택되지 않음 (?)';
+        label.classList.add('text-slate-400');
+        label.classList.remove('text-white', 'font-bold');
+      }
+    }
+
+    function goToStep(stepNumber) {
+      state.step = stepNumber;
+      document.getElementById('currentStepNumber').textContent = stepNumber;
+
+      for (let i = 1; i <= 6; i++) {
+        const tab = document.getElementById(`tab-step-${i}`);
+        const panel = document.getElementById(`step-panel-${i}`);
+        if (i === stepNumber) {
+          tab.className = "step-tab flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all bg-neon-lime text-dark-950 shadow-md";
+          panel.classList.remove('hidden');
+        } else {
+          tab.className = "step-tab flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all bg-dark-800 text-slate-400 hover:text-white";
+          panel.classList.add('hidden');
+        }
+      }
+
+      document.getElementById('prevStepBtn').disabled = (stepNumber === 1);
+      document.getElementById('prevStepBtn').style.opacity = (stepNumber === 1) ? '0.4' : '1';
+
+      const nextBtn = document.getElementById('nextStepBtn');
+      if (stepNumber === 6) {
+        nextBtn.innerHTML = `완성 확인 <i class="fa-solid fa-check ml-1"></i>`;
+      } else {
+        nextBtn.innerHTML = `다음 단계 <i class="fa-solid fa-arrow-right ml-1"></i>`;
+      }
+    }
+
+    function navigateStep(direction) {
+      const nextStep = state.step + direction;
+      if (nextStep >= 1 && nextStep <= 6) {
+        goToStep(nextStep);
+      }
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       6. VERCEL SERVERLESS GENERATION ENGINE
+       The backend server automatically maps photoStyle to the style reference image.
+       The client only passes:
+       { who, elasticItem, action, place, moment, photoStyle }
+       ───────────────────────────────────────────────────────────── */
+    async function triggerElasticSnap() {
+      if (!state.who) {
+        showToast('안내', 'STEP 1: 등장인물을 먼저 선택해 주세요!', 'fa-user');
+        goToStep(1);
+        return;
+      }
+      if (!state.object) {
+        showToast('안내', 'STEP 2: 탄성체를 먼저 선택해 주세요!', 'fa-shapes');
+        goToStep(2);
+        return;
+      }
+      if (!state.action) {
+        showToast('안내', 'STEP 3: 상호작용 행동을 선택해 주세요!', 'fa-person-running');
+        goToStep(3);
+        return;
+      }
+      if (!state.place) {
+        showToast('안내', 'STEP 4: 배경 장소를 선택해 주세요!', 'fa-location-dot');
+        goToStep(4);
+        return;
+      }
+      if (!state.moment) {
+        showToast('안내', 'STEP 5: 포착할 탄성 순간을 선택해 주세요!', 'fa-bolt');
+        goToStep(5);
+        return;
+      }
+      if (!state.style) {
+        showToast('안내', 'STEP 6: 사진 스타일을 선택해 주세요!', 'fa-palette');
+        goToStep(6);
+        return;
+      }
+
+      const selectedWho = state.who.name;
+      const selectedElasticItem = state.object.name;
+      const selectedAction = state.action.label;
+      const selectedPlace = state.place.name;
+      const selectedMoment = state.moment.label.replace(/^[①②③]\s*/, '');
+      // Exact string mapped to server's styleMap (e.g., "3D ANIMATION")
+      const selectedPhotoStyle = state.style.photoStyle;
+
+      const compiledCinematicPrompt = compileCinematicSciencePrompt();
+
+      const requestPayload = {
+        who: selectedWho,
+        elasticItem: selectedElasticItem,
+        action: selectedAction,
+        place: selectedPlace,
+        moment: selectedMoment,
+        photoStyle: selectedPhotoStyle,
+        prompt: compiledCinematicPrompt
+      };
+
+      state.lastPayload = requestPayload;
+
+      console.log("=== VERCEL API REQUEST DISPATCH ===");
+      console.log("ENDPOINT: https://elastic-snap-api.vercel.app/api/generate-image");
+      console.log("EXACT PHOTO STYLE (SERVER MAPPED):", selectedPhotoStyle);
+      console.log("PAYLOAD:", requestPayload);
+
+      document.getElementById('studioView').classList.add('hidden');
+      document.getElementById('resultView').classList.add('hidden');
+      document.getElementById('loadingView').classList.remove('hidden');
+      document.getElementById('loadingErrorBox').classList.add('hidden');
+
+      const facts = [
+        "탄성 에너지는 물체가 변형될 때 내부에 축적되며, 복원될 때 강력한 운동 에너지로 방출됩니다.",
+        "트램펄린 매트가 아래로 깊게 휠수록 위쪽으로 쏘아 올리는 탄성 복원력도 극대화됩니다.",
+        "탁구공과 테니스공은 충돌하는 수 밀리초 동안 압축되었다가 원래 모양으로 복원되며 튕겨나갑니다.",
+        "양궁 활채의 탄성 복원력은 시위를 튕겨 화살을 폭발적인 속도로 추진시킵니다.",
+        "훅의 법칙(Hooke's Law): 탄성력의 크기는 원래 모양에서 변형된 길이에 비례합니다 (F = -kx)."
+      ];
+      document.getElementById('loadingScienceFact').textContent = facts[Math.floor(Math.random() * facts.length)];
+      animateLoadingSteps();
+
+      try {
+        let response;
+        try {
+          response = await fetch(
+            "https://elastic-snap-api.vercel.app/api/generate-image",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify(requestPayload)
+            }
+          );
+        } catch (fetchErr) {
+          console.warn("Primary endpoint failed, trying relative /api/generate-image:", fetchErr);
+          response = await fetch(
+            "/api/generate-image",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify(requestPayload)
+            }
+          );
+        }
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText || `서버 응답 오류 (HTTP ${response.status})`);
+        }
+
+        const blob = await response.blob();
+        
+        if (state.generatedImageUrl) {
+          URL.revokeObjectURL(state.generatedImageUrl);
+        }
+
+        const imageUrl = URL.createObjectURL(blob);
+
+        state.generatedImageBlob = blob;
+        state.generatedImageUrl = imageUrl;
+        state.snappedCount++;
+
+        addXp(50, 'ELASTIC SNAP 포착 성공! (+50 XP)');
+        checkBadges();
+
+        console.log("IMAGE SOURCE: GOOGLE GEMINI");
+        showResultScreen(imageUrl, true);
+
+      } catch (error) {
+        console.error("Gemini 이미지 생성 실패:", error);
+        showResultScreen(null, false, error.message);
+      }
+    }
+
+    function animateLoadingSteps() {
+      const step1 = document.getElementById('load-step-1');
+      const step2 = document.getElementById('load-step-2');
+      const step3 = document.getElementById('load-step-3');
+
+      step1.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin text-neon-cyan"></i> <span>🎬 극장용 3D 애니메이션 구도 및 볼류메트릭 라이팅 설정 중...</span>`;
+      step1.className = "flex items-center gap-3 p-3 rounded-xl bg-dark-850/80 border border-neon-cyan/40 text-xs font-semibold text-neon-cyan";
+
+      setTimeout(() => {
+        step1.innerHTML = `<i class="fa-solid fa-circle-check text-neon-lime"></i> <span class="text-slate-200">🎬 3D 극장판 구도 및 광원 설정 완료</span>`;
+        step1.className = "flex items-center gap-3 p-3 rounded-xl bg-dark-850/80 border border-slate-800 text-xs font-semibold text-slate-300";
+        step2.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin text-neon-amber"></i> <span>⚡ 탄성 에너지 방출 및 물리적 변형 정밀 동기화 중...</span>`;
+        step2.className = "flex items-center gap-3 p-3 rounded-xl bg-dark-850/80 border border-neon-amber/40 text-xs font-semibold text-neon-amber";
+      }, 2000);
+
+      setTimeout(() => {
+        step2.innerHTML = `<i class="fa-solid fa-circle-check text-neon-lime"></i> <span class="text-slate-200">⚡ 탄성 복원력 동기화 완료</span>`;
+        step2.className = "flex items-center gap-3 p-3 rounded-xl bg-dark-850/80 border border-slate-800 text-xs font-semibold text-slate-300";
+        step3.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin text-neon-lime"></i> <span>📸 Google Gemini AI 시네마틱 애니메이션 렌더링 중...</span>`;
+        step3.className = "flex items-center gap-3 p-3 rounded-xl bg-dark-850/80 border border-neon-lime/40 text-xs font-semibold text-neon-lime";
+      }, 4500);
+    }
+
+    function showResultScreen(imageUrl, isSuccess = true, errorMsg = "") {
+      document.getElementById('loadingView').classList.add('hidden');
+
+      if (!isSuccess) {
+        document.getElementById('loadingView').classList.remove('hidden');
+        document.getElementById('loadingErrorBox').classList.remove('hidden');
+        document.getElementById('loadingErrorMessage').textContent = `Gemini 이미지 생성에 실패했습니다: ${errorMsg}`;
+        showToast('생성 실패', '다시 생성하기 버튼을 눌러주세요.', 'fa-circle-exclamation');
+        return;
+      }
+
+      document.getElementById('studioView').classList.add('hidden');
+      const resultView = document.getElementById('resultView');
+      resultView.classList.remove('hidden');
+
+      const imgEl = document.getElementById('generatedImage');
+      imgEl.src = imageUrl;
+
+      const title = `${state.place.name}에서 포착한 ${state.object.name}의 ${state.moment.label.replace(/^[①②③]\s*/, '')}`;
+      document.getElementById('resultTitle').textContent = `"${title}"`;
+
+      // 1. Scene Selections Recap
+      document.getElementById('recapWho').textContent = state.who ? state.who.name : '-';
+      document.getElementById('recapObject').textContent = state.object ? state.object.name : '-';
+      document.getElementById('recapAction').textContent = state.action ? state.action.label : '-';
+      document.getElementById('recapPlace').textContent = state.place ? state.place.name : '-';
+      document.getElementById('recapMoment').textContent = state.moment ? state.moment.label.replace(/^[①②③]\s*/, '') : '-';
+      document.getElementById('recapStyle').textContent = state.style ? state.style.photoStyle : '-';
+
+      // Update Dev Verification Box
+      const devStyleEl = document.getElementById('devSelectedStyle');
+      if (devStyleEl) {
+        devStyleEl.textContent = state.style ? state.style.photoStyle : '-';
+      }
+
+      // 2. Science Laboratory Report
+      document.getElementById('sciReportObject').textContent = `${state.object.name} (${state.object.category})`;
+      document.getElementById('sciReportDeform').textContent = state.object.deformPhysics;
+      document.getElementById('sciReportRestore').textContent = state.object.restorePhysics;
+      document.getElementById('sciReportPrinciple').innerHTML = `
+        "${state.object.name}은(는) 외력을 받아 모양이 변형되었을 때, 본래 형태로 되돌아가려는 <strong>탄성력</strong>을 발휘합니다. 
+        ${state.object.effect}"
+      `;
+
+      // 3. Prompt Code Viewer
+      document.getElementById('promptInspectorText').textContent = state.lastPayload?.prompt || '--';
+
+      // Reset Feedback
+      document.getElementById('downloadFeedback').textContent = "* [과학 리포트 JPG 저장] 클릭 시 고해상도(1920×1080) 리포트 카드가 .jpg 파일로 저장됩니다.";
+      document.getElementById('downloadFeedback').className = "text-xs text-center text-slate-400";
+    }
+
+    function backToStudioEdit() {
+      document.getElementById('resultView').classList.add('hidden');
+      document.getElementById('loadingView').classList.add('hidden');
+      document.getElementById('studioView').classList.remove('hidden');
+    }
+
+    function resetToStudio() {
+      backToStudioEdit();
+      goToStep(1);
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       7. TRUE JPG EXPORT ENGINES (PHOTO-ONLY & 1920x1080 REPORT)
+       ───────────────────────────────────────────────────────────── */
+    function downloadStandalonePhoto() {
+      if (!state.generatedImageBlob) {
+        showToast('오류', '저장할 사진 데이터가 없습니다.', 'fa-circle-xmark');
+        return;
+      }
+
+      const filename = sanitizeFilename(`ELASTIC_SNAP_${state.object.name}_${state.moment.id}.jpg`);
+      triggerBrowserBlobDownload(state.generatedImageBlob, filename);
+      
+      document.getElementById('downloadFeedback').innerHTML = `
+        <span class="text-neon-lime font-bold">
+          <i class="fa-solid fa-circle-check mr-1"></i> "${filename}" 사진이 기기에 안전하게 저장되었습니다!
+        </span>
+      `;
+      showToast('저장 완료', '사진 JPG 파일이 다운로드되었습니다.', 'fa-download');
+    }
+
+    async function downloadFullScienceReportJpg() {
+      if (!state.generatedImageUrl) {
+        showToast('오류', '저장할 이미지 데이터가 없습니다.', 'fa-circle-xmark');
+        return;
+      }
+
+      const feedbackEl = document.getElementById('downloadFeedback');
+      feedbackEl.innerHTML = `<i class="fa-solid fa-spinner animate-spin mr-1 text-neon-cyan"></i> 1920×1080 고해상도 과학 리포트 캔버스 생성 중...`;
+
+      try {
+        if (document.fonts) {
+          await document.fonts.ready;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 1920;
+        canvas.height = 1080;
+        const ctx = canvas.getContext('2d');
+
+        // 1. Background Fill
+        const bgGrad = ctx.createLinearGradient(0, 0, 1920, 1080);
+        bgGrad.addColorStop(0, '#070a13');
+        bgGrad.addColorStop(0.5, '#0b1120');
+        bgGrad.addColorStop(1, '#080d1a');
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, 1920, 1080);
+
+        // 2. Decorative Top Accent Line
+        const lineGrad = ctx.createLinearGradient(60, 0, 1860, 0);
+        lineGrad.addColorStop(0, '#a3e635');
+        lineGrad.addColorStop(0.5, '#38bdf8');
+        lineGrad.addColorStop(1, '#fbbf24');
+        ctx.fillStyle = lineGrad;
+        ctx.fillRect(60, 40, 1800, 4);
+
+        // 3. Header Texts
+        ctx.fillStyle = '#a3e635';
+        ctx.font = 'bold 24px Pretendard, sans-serif';
+        ctx.fillText('⚡ ELASTIC SNAP • 탄성 순간 포착 스튜디오 과학 탐구 리포트', 60, 80);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 38px Pretendard, sans-serif';
+        const titleText = `"${state.place.name}에서 포착한 ${state.object.name}의 ${state.moment.label.replace(/^[①②③]\s*/, '')}"`;
+        ctx.fillText(titleText, 60, 135);
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '18px Pretendard, sans-serif';
+        ctx.fillText('중학교 1학년 과학 : 변형된 물체가 원래 모양으로 되돌아가려는 탄성력의 시각적 탐구', 60, 170);
+
+        // 4. Load and Render Hero Image on the Left Area
+        const heroImg = new Image();
+        heroImg.crossOrigin = "anonymous";
+        await new Promise((resolve, reject) => {
+          heroImg.onload = resolve;
+          heroImg.onerror = reject;
+          heroImg.src = state.generatedImageUrl;
+        });
+
+        const boxX = 60, boxY = 200, boxW = 1020, boxH = 820;
+        ctx.fillStyle = '#050811';
+        ctx.beginPath();
+        roundRect(ctx, boxX, boxY, boxW, boxH, 24);
+        ctx.fill();
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        const imgAspect = heroImg.width / heroImg.height;
+        const boxAspect = boxW / boxH;
+        let renderW, renderH, renderX, renderY;
+
+        if (imgAspect > boxAspect) {
+          renderW = boxW - 20;
+          renderH = renderW / imgAspect;
+          renderX = boxX + 10;
+          renderY = boxY + (boxH - renderH) / 2;
+        } else {
+          renderH = boxH - 20;
+          renderW = renderH * imgAspect;
+          renderX = boxX + (boxW - renderW) / 2;
+          renderY = boxY + 10;
+        }
+
+        ctx.save();
+        ctx.beginPath();
+        roundRect(ctx, boxX + 10, boxY + 10, boxW - 20, boxH - 20, 16);
+        ctx.clip();
+        ctx.drawImage(heroImg, renderX, renderY, renderW, renderH);
+        ctx.restore();
+
+        // Watermark on Photo
+        ctx.fillStyle = 'rgba(7, 10, 19, 0.85)';
+        ctx.beginPath();
+        roundRect(ctx, boxX + 24, boxY + boxH - 64, 280, 40, 10);
+        ctx.fill();
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 15px monospace';
+        ctx.fillText('⚡ ELASTIC SNAP • 1/10000s', boxX + 40, boxY + boxH - 38);
+
+        // 5. Right Area: Top - My Scene Selections (X=1110, Y=200, W=750, H=280)
+        const recapX = 1110, recapY = 200, recapW = 750, recapH = 280;
+        ctx.fillStyle = '#111b2f';
+        ctx.beginPath();
+        roundRect(ctx, recapX, recapY, recapW, recapH, 20);
+        ctx.fill();
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 20px Pretendard, sans-serif';
+        ctx.fillText('📋 나의 장면 선택 (SCENE SELECTIONS)', recapX + 24, recapY + 42);
+
+        const items = [
+          { label: '👤 등장인물', val: state.who.name, color: '#ffffff' },
+          { label: '🏀 탄성체', val: state.object.name, color: '#a3e635' },
+          { label: '🎬 행동', val: state.action.label, color: '#ffffff' },
+          { label: '📍 장소', val: state.place.name, color: '#ffffff' },
+          { label: '⚡ 포착 순간', val: state.moment.label.replace(/^[①②③]\s*/, ''), color: '#fbbf24' },
+          { label: '🎨 스타일', val: state.style.photoStyle, color: '#38bdf8' }
+        ];
+
+        const cardW = 220;
+        const cardH = 86;
+        items.forEach((it, idx) => {
+          const col = idx % 3;
+          const row = Math.floor(idx / 3);
+          const cX = recapX + 24 + col * (cardW + 20);
+          const cY = recapY + 70 + row * (cardH + 16);
+
+          ctx.fillStyle = '#0b1120';
+          ctx.beginPath();
+          roundRect(ctx, cX, cY, cardW, cardH, 12);
+          ctx.fill();
+          ctx.strokeStyle = '#1e293b';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = 'bold 14px Pretendard, sans-serif';
+          ctx.fillText(it.label, cX + 14, cY + 28);
+
+          ctx.fillStyle = it.color;
+          ctx.font = 'bold 17px Pretendard, sans-serif';
+          ctx.fillText(truncateText(ctx, it.val, cardW - 28), cX + 14, cY + 60);
+        });
+
+        // 6. Right Area: Bottom - Science Report (X=1110, Y=510, W=750, H=510)
+        const sciX = 1110, sciY = 510, sciW = 750, sciH = 510;
+        ctx.fillStyle = '#111b2f';
+        ctx.beginPath();
+        roundRect(ctx, sciX, sciY, sciW, sciH, 20);
+        ctx.fill();
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = '#a3e635';
+        ctx.font = 'bold 22px Pretendard, sans-serif';
+        ctx.fillText('🔬 탄성 과학 포토 리포트', sciX + 24, sciY + 45);
+
+        let curY = sciY + 85;
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 16px Pretendard, sans-serif';
+        ctx.fillText('💧 포착한 탄성체', sciX + 24, curY);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 18px Pretendard, sans-serif';
+        ctx.fillText(`${state.object.name}  (${state.object.category})`, sciX + 180, curY);
+
+        curY += 45;
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = 'bold 16px Pretendard, sans-serif';
+        ctx.fillText('✨ 작용한 외력과 변형', sciX + 24, curY);
+        ctx.fillStyle = '#cbd5e1';
+        ctx.font = '16px Pretendard, sans-serif';
+        curY = drawWrappedText(ctx, state.object.deformPhysics, sciX + 24, curY + 26, sciW - 48, 26);
+
+        curY += 25;
+        ctx.fillStyle = '#a3e635';
+        ctx.font = 'bold 16px Pretendard, sans-serif';
+        ctx.fillText('⚡ 복원 과정과 탄성력의 방향', sciX + 24, curY);
+        ctx.fillStyle = '#cbd5e1';
+        ctx.font = '16px Pretendard, sans-serif';
+        curY = drawWrappedText(ctx, state.object.restorePhysics, sciX + 24, curY + 26, sciW - 48, 26);
+
+        curY += 25;
+        const boxPrincipleH = 100;
+        ctx.fillStyle = 'rgba(163, 230, 53, 0.08)';
+        ctx.beginPath();
+        roundRect(ctx, sciX + 24, curY, sciW - 48, boxPrincipleH, 14);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(163, 230, 53, 0.35)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.fillStyle = '#a3e635';
+        ctx.font = 'bold 16px Pretendard, sans-serif';
+        ctx.fillText('✅ 탄성력의 핵심 원리', sciX + 42, curY + 34);
+
+        ctx.fillStyle = '#f1f5f9';
+        ctx.font = '15px Pretendard, sans-serif';
+        const principleStatement = `"${state.object.name}은(는) 외력으로 변형되었을 때 원래 모양으로 돌아가려는 힘인 탄성력을 발휘하여 반대 방향으로 되돌아갑니다."`;
+        drawWrappedText(ctx, principleStatement, sciX + 42, curY + 64, sciW - 84, 24);
+
+        // 7. Generate true 1920x1080 JPEG Blob
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            throw new Error('Canvas JPEG Blob 인코딩 실패');
+          }
+
+          const filename = sanitizeFilename(`ELASTIC_SNAP_${state.object.name}_${state.moment.id}_리포트.jpg`);
+          triggerBrowserBlobDownload(blob, filename);
+
+          feedbackEl.innerHTML = `
+            <span class="text-neon-lime font-bold">
+              <i class="fa-solid fa-circle-check mr-1"></i> "${filename}" (1920×1080) 리포트가 성공적으로 저장되었습니다!
+            </span>
+          `;
+          showToast('리포트 저장 완료', '고해상도 과학 리포트가 다운로드되었습니다.', 'fa-file-invoice');
+        }, 'image/jpeg', 0.95);
+
+      } catch (err) {
+        console.error('리포트 캔버스 생성 오류:', err);
+        feedbackEl.innerHTML = `<span class="text-red-400 font-bold">리포트 저장 중 오류가 발생했습니다. 사진만 JPG 저장을 이용해 주세요.</span>`;
+        showToast('저장 오류', '리포트 생성 중 문제가 발생했습니다.', 'fa-triangle-exclamation');
+      }
+    }
+
+    function triggerBrowserBlobDownload(blob, filename) {
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    }
+
+    function sanitizeFilename(name) {
+      return name.replace(/[/\\?%*:|"<>]/g, '_');
+    }
+
+    function roundRect(ctx, x, y, width, height, radius) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + width - radius, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+      ctx.lineTo(x + width, y + height - radius);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      ctx.lineTo(x + radius, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+    }
+
+    function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight) {
+      const words = text.split(' ');
+      let line = '';
+      let curY = y;
+
+      for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + ' ';
+        const metrics = ctx.measureText(testLine);
+        const testWidth = metrics.width;
+        if (testWidth > maxWidth && n > 0) {
+          ctx.fillText(line, x, curY);
+          line = words[n] + ' ';
+          curY += lineHeight;
+        } else {
+          line = testLine;
+        }
+      }
+      ctx.fillText(line, x, curY);
+      return curY;
+    }
+
+    function truncateText(ctx, text, maxWidth) {
+      if (ctx.measureText(text).width <= maxWidth) return text;
+      let str = text;
+      while (str.length > 0 && ctx.measureText(str + '...').width > maxWidth) {
+        str = str.substring(0, str.length - 1);
+      }
+      return str + '...';
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       8. GAMIFICATION (XP, BADGES, TOAST)
+       ───────────────────────────────────────────────────────────── */
+    function addXp(amount, reason = "") {
+      state.xp += amount;
+      const newLevel = Math.floor(state.xp / 100) + 1;
+      if (newLevel > state.level) {
+        state.level = newLevel;
+        showToast('LEVEL UP! 🎉', `축하합니다! 레벨 ${state.level}에 도달했습니다!`, 'fa-arrow-up');
+      }
+
+      document.getElementById('userLevel').textContent = state.level;
+      const currentLevelXp = state.xp % 100;
+      document.getElementById('xpText').textContent = `${currentLevelXp} / 100`;
+      document.getElementById('xpProgressBar').style.width = `${currentLevelXp}%`;
+
+      if (reason) {
+        showToast(`+${amount} XP`, reason, 'fa-bolt');
+      }
+    }
+
+    function checkBadges() {
+      if (state.snappedCount >= 1 && !state.badges.rookie) {
+        state.badges.rookie = true;
+        unlockBadgeUI('badge-rookie', 'ELASTIC ROOKIE');
+      }
+
+      const objCount = state.exploredObjects.size;
+      const explorerStatus = document.querySelector('#badge-explorer .badge-status');
+      if (explorerStatus) {
+        explorerStatus.textContent = `${Math.min(objCount, 3)}/3 탐색`;
+      }
+      if (objCount >= 3 && !state.badges.explorer) {
+        state.badges.explorer = true;
+        unlockBadgeUI('badge-explorer', 'ELASTIC EXPLORER');
+      }
+
+      const momentCount = state.exploredMoments.size;
+      const masterStatus = document.querySelector('#badge-master .badge-status');
+      if (masterStatus) {
+        masterStatus.textContent = `${momentCount}/3 순간`;
+      }
+      if (momentCount >= 3 && !state.badges.master) {
+        state.badges.master = true;
+        unlockBadgeUI('badge-master', 'MOMENT MASTER');
+      }
+
+      let unlockedCount = 0;
+      if (state.badges.rookie) unlockedCount++;
+      if (state.badges.explorer) unlockedCount++;
+      if (state.badges.master) unlockedCount++;
+      document.getElementById('unlockedBadgesCount').textContent = unlockedCount;
+    }
+
+    function unlockBadgeUI(badgeElementId, badgeName) {
+      const badgeEl = document.getElementById(badgeElementId);
+      badgeEl.classList.remove('opacity-60', 'border-slate-800');
+      badgeEl.classList.add('border-neon-amber/50', 'bg-neon-amber/10');
+
+      const icon = badgeEl.querySelector('.badge-icon');
+      icon.classList.remove('bg-dark-800', 'text-slate-500');
+      icon.classList.add('bg-neon-amber', 'text-dark-950');
+
+      const status = badgeEl.querySelector('.badge-status');
+      status.textContent = "획득 완료! 🏆";
+      status.classList.remove('bg-dark-800', 'text-slate-500');
+      status.classList.add('bg-neon-amber/20', 'text-neon-amber', 'font-bold');
+
+      showToast('새 배지 획득! 🏅', `[${badgeName}] 배지를 획득했습니다!`, 'fa-award');
+    }
+
+    function toggleBadgeModal() {
+      const modal = document.getElementById('badgeModal');
+      modal.classList.toggle('hidden');
+    }
+
+    let toastTimeout = null;
+    function showToast(title, message, iconClass = 'fa-bolt') {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastTitle').textContent = title;
+      document.getElementById('toastMsg').textContent = message;
+      document.getElementById('toastIcon').innerHTML = `<i class="fa-solid ${iconClass}"></i>`;
+
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3200);
+    }
+  </script>
+</body>
+</html>
