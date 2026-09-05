@@ -1,4 +1,4 @@
-const store = new Map();
+import { put } from "@vercel/blob";
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -26,27 +26,42 @@ export default async function handler(req, res) {
       });
     }
 
-    const id =
-      Date.now().toString(36) +
-      Math.random().toString(36).slice(2);
+    const base64 = imageData.replace(
+      /^data:image\/\w+;base64,/,
+      ""
+    );
 
-    store.set(id, {
-      imageData,
-      fileName: fileName || "elastic-snap.jpg",
-      createdAt: Date.now()
-    });
+    const buffer = Buffer.from(base64, "base64");
+
+    const safeFileName =
+      (fileName || `elastic-snap-${Date.now()}.jpg`)
+        .replace(/[^\w가-힣.-]/g, "_");
+
+    const blob = await put(
+      `elastic-snap/${Date.now()}-${safeFileName}`,
+      buffer,
+      {
+        access: "public",
+        contentType: "image/jpeg",
+        addRandomSuffix: true
+      }
+    );
+
+    console.log("BLOB SAVED:", blob.url);
 
     return res.status(200).json({
-      id
+      url: blob.url,
+      pathname: blob.pathname
     });
 
   } catch (error) {
-    console.error("SAVE IMAGE ERROR:", error);
+    console.error(
+      "SAVE IMAGE ERROR:",
+      error?.message || error
+    );
 
     return res.status(500).json({
-      error: "Failed to save image"
+      error: error?.message || "Failed to save image"
     });
   }
 }
-
-export { store };
