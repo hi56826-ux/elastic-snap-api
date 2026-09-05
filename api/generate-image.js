@@ -1,264 +1,311 @@
+import fs from "fs";
+import path from "path";
+
 const MODEL_ID = "gemini-3.1-flash-image";
+
+/* =========================================================
+   1. 등장인물 영어 변환
+========================================================= */
 
 function mapWho(who) {
   const map = {
     "초등학생":
-      "a school-aged child in a safe supervised educational or recreational setting",
+      "a stylized elementary-school-aged animated character, clearly appearing around 8-12 years old",
+
+    "어린이":
+      "a stylized young animated child character",
+
+    "어린이 두 명":
+      "two stylized young animated child characters",
+
     "중학생":
-      "a realistic middle-school-aged student around 13 to 15 years old wearing appropriate athletic clothing",
+      "a stylized middle-school-aged animated character, clearly appearing around 13-15 years old",
+
     "고등학생":
-      "a realistic high-school-aged student around 16 to 18 years old wearing appropriate athletic clothing",
+      "a stylized high-school-aged animated character, clearly appearing around 16-18 years old",
+
     "친구 두 명":
-      "two realistic school-aged students in appropriate casual or athletic clothing",
+      "two stylized teenage animated student characters",
+
     "가족":
-      "a family in a safe everyday recreational setting",
+      "a stylized animated family",
+
     "농구선수":
-      "a realistic basketball player wearing proper sportswear",
+      "a stylized animated basketball athlete",
+
     "축구선수":
-      "a realistic soccer player wearing proper sportswear",
+      "a stylized animated soccer athlete",
+
     "테니스선수":
-      "a realistic tennis player wearing proper sportswear",
+      "a stylized animated tennis athlete",
+
     "양궁선수":
-      "a realistic archery athlete at a supervised range",
+      "a stylized animated archery athlete",
+
+    "체조선수":
+      "a stylized animated gymnastics athlete",
+
     "육상선수":
-      "a realistic track-and-field athlete wearing sportswear",
+      "a stylized animated track-and-field athlete",
+
     "자전거를 타는 사람":
-      "a realistic cyclist wearing appropriate sportswear and safety gear",
+      "a stylized animated cyclist",
+
     "캠핑 중인 사람":
-      "a realistic person camping outdoors safely",
+      "a stylized animated camper",
+
     "반려견과 놀고 있는 사람":
-      "a realistic person safely playing with a dog outdoors"
+      "a stylized animated character playing with a dog"
   };
 
-  return map[who] ||
-    "a realistic fully clothed person in a safe supervised setting";
+  return map[who] || "a stylized animated character";
 }
 
-function mapElasticObject(item) {
+
+/* =========================================================
+   2. 탄성체 영어 변환
+========================================================= */
+
+function mapObject(item) {
   const map = {
     "점핑볼":
-      "a real inflatable jumping ball made of elastic rubber",
+      "a clearly recognizable elastic jumping ball",
+
     "트램펄린":
-      "a real full-size trampoline with a flexible mat, visible frame, and elastic springs",
+      "a large clearly recognizable trampoline with a flexible fabric mat, metal frame and springs",
+
     "농구공":
-      "a real orange rubber basketball with realistic surface texture",
+      "a clearly recognizable orange basketball",
+
     "축구공":
-      "a real soccer ball with realistic stitched panels",
+      "a clearly recognizable soccer ball",
+
     "배구공":
-      "a real volleyball with realistic synthetic leather texture",
+      "a clearly recognizable volleyball",
+
     "테니스공":
-      "a real fluorescent yellow-green tennis ball",
+      "a clearly recognizable bright tennis ball",
+
     "탁구공":
-      "a real white 40 mm table tennis ball",
+      "a clearly recognizable white table-tennis ball",
+
     "고무공":
-      "a real elastic rubber ball",
+      "a clearly recognizable elastic rubber ball",
+
     "고무줄":
-      "a real elastic rubber band",
+      "a clearly recognizable stretched rubber band",
+
     "머리끈":
-      "a real elastic hair tie",
+      "a clearly recognizable elastic hair tie",
+
+    "번지점프 로프":
+      "a clearly recognizable elastic bungee cord",
+
     "운동용 저항밴드":
-      "a real elastic resistance band",
+      "a clearly recognizable elastic resistance band",
+
     "활":
-      "a real archery bow with visibly flexible bow limbs and bowstring",
+      "a clearly recognizable archery bow with flexible bent limbs",
+
     "낚싯대":
-      "a real flexible fishing rod",
+      "a clearly recognizable flexible fishing rod",
+
     "다이빙보드":
-      "a real flexible diving board",
+      "a clearly recognizable flexible springboard diving board",
+
     "장대높이뛰기 장대":
-      "a real flexible pole-vault pole",
+      "a clearly recognizable flexible pole-vault pole",
+
     "용수철":
-      "a real metal coil spring",
+      "a clearly recognizable metal coil spring",
+
     "매트리스":
-      "a real soft spring mattress",
+      "a clearly recognizable spring mattress",
+
     "소파 쿠션":
-      "a real soft sofa cushion",
+      "a clearly recognizable soft sofa cushion",
+
     "운동화 밑창":
-      "a real athletic shoe sole with compressible cushioning material",
+      "a clearly recognizable athletic shoe sole with compressible cushioning",
+
     "자동차 서스펜션":
-      "a real car suspension system with visible coil spring and wheel",
+      "a clearly recognizable automobile suspension system with a visible coil spring",
+
     "자전거 서스펜션":
-      "a real bicycle suspension fork",
+      "a clearly recognizable bicycle suspension fork",
+
     "스펀지":
-      "a real porous household sponge",
+      "a clearly recognizable porous sponge",
+
     "에어쿠션":
-      "a real inflatable air cushion"
+      "a clearly recognizable inflatable air cushion"
   };
 
   return map[item] ||
-    `a real physical ${item}`;
+    `a clearly recognizable elastic object corresponding to ${item}`;
 }
 
-function mapAction(action) {
-  const map = {
-    "점프하기":
-      "jumping on the elastic object",
-    "높이 점프하기":
-      "jumping upward dynamically",
-    "점프 후 착지":
-      "landing after a jump",
-    "착지하기":
-      "landing with both feet on the elastic surface",
-    "연속해서 튀기":
-      "repeatedly bouncing the ball",
-    "바닥에 튀기기":
-      "bouncing the ball against the floor",
-    "라켓으로 치기":
-      "striking the ball with a racket",
-    "탁구 라켓으로 공을 치는 순간":
-      "striking a table tennis ball with a real table tennis paddle",
-    "활시위 당기기":
-      "pulling the bowstring backward under tension",
-    "화살을 쏘기 직전":
-      "holding the bow at maximum draw just before release",
-    "양손으로 잡아당기기":
-      "stretching the elastic object between both hands",
-    "놓기 직전":
-      "holding the stretched elastic object just before release",
-    "달리기":
-      "running naturally",
-    "점프 후 착지하기":
-      "landing after a jump",
-    "누르기":
-      "pressing downward on the elastic object",
-    "압축하기":
-      "compressing the elastic object",
-    "휘기":
-      "bending the elastic object"
-  };
 
-  return map[action] || action;
-}
+/* =========================================================
+   3. 장소 영어 변환
+========================================================= */
 
 function mapPlace(place) {
   const map = {
     "학교 체육관":
-      "inside a clearly recognizable school gymnasium with polished wooden sports flooring, painted court lines, basketball hoops, wall safety padding, a high ceiling, roof structure, and indoor sports lighting",
+      "inside a colorful animated Korean school gymnasium with polished wooden flooring, painted sports court lines, basketball hoops, wall padding and a high ceiling",
 
     "우레탄 농구 코트":
-      "on a clearly recognizable outdoor urethane basketball court with a colored court surface, painted basketball markings, basketball hoops, perimeter fencing, and school sports facilities",
+      "on a colorful outdoor urethane basketball court with painted court markings, basketball hoops and surrounding school facilities",
 
     "학교 운동장":
-      "on a clearly recognizable school athletic field with a running track, field markings, school buildings, and sports facilities",
+      "on a colorful animated Korean school athletic field with track lanes, school buildings and sports facilities",
 
     "공원":
-      "in a clearly recognizable public park with trees, grass, walking paths, benches, and natural daylight",
+      "inside a vibrant animated public park with green trees, grass, walking paths and benches",
 
     "놀이터":
-      "in a clearly recognizable playground with slides, swings, climbing equipment, and safety flooring",
+      "inside a vibrant animated playground with slides, swings and colorful playground equipment",
 
     "농구장":
-      "on a real basketball court with visible court lines and basketball hoops",
+      "on a colorful animated basketball court with hoops, court markings and spectator surroundings",
 
     "축구장":
-      "on a real soccer field with grass turf, field lines, and soccer goals",
+      "on a large animated soccer field with goals, grass and stadium surroundings",
 
     "테니스장":
-      "on a real tennis court with net, court lines, and fencing",
+      "on a colorful animated tennis court with a net, painted court lines and surrounding facilities",
 
     "교실":
-      "inside a real school classroom with desks, chairs, windows, and classroom walls",
+      "inside a colorful animated Korean school classroom with desks, chairs, windows and classroom equipment",
 
     "집":
-      "inside a realistic home interior",
+      "inside a richly detailed colorful animated home interior",
 
     "캠핑장":
-      "at a real outdoor campsite with tents, trees, grass, and camping equipment",
+      "inside a vibrant animated campsite surrounded by trees, tents and camping equipment",
 
     "수영장":
-      "at a real supervised swimming pool facility",
+      "inside a colorful animated swimming pool facility with turquoise water and pool lanes",
+
+    "실내 다이빙 수영장":
+      "inside a spectacular animated indoor diving stadium with deep turquoise pool water, springboards, diving platforms, spectator seating and dramatic architectural lighting",
 
     "육상 경기장":
-      "inside a real track-and-field stadium with running lanes and sports facilities"
+      "inside a vibrant animated track-and-field stadium with running tracks and spectator seating"
   };
 
   return map[place] ||
-    `in a clearly recognizable real-world location matching "${place}"`;
+    `inside a richly detailed animated environment clearly representing ${place}`;
 }
 
+
+/* =========================================================
+   4. 탄성 순간
+========================================================= */
+
 function mapMoment(moment, elasticItem) {
-  const generic = {
-    "변형되는 순간":
-      "capture the exact instant when the elastic object is visibly changing shape due to an external force",
-
-    "최대 변형 순간":
-      "capture the exact instant of maximum elastic deformation, when the object is at its greatest compression, stretch, or bend",
-
-    "복원되는 순간":
-      "capture the exact instant when the elastic object is returning toward its original shape and exerting a restoring force"
-  };
 
   const special = {
+
     "트램펄린": {
       "변형되는 순간":
-        "the student's feet are contacting the trampoline mat and the mat is visibly bending downward under the student's weight",
+        "the trampoline mat is visibly bending downward as the character lands on it",
+
       "최대 변형 순간":
-        "the student's feet are firmly contacting the trampoline mat and the mat is visibly curved deeply downward at maximum deformation",
+        "the trampoline mat is dramatically curved downward at its maximum elastic deformation under the character's weight",
+
       "복원되는 순간":
-        "the trampoline mat is moving back upward toward its original flat shape and visibly pushing the student upward"
+        "the trampoline mat is rapidly springing upward toward its original flat shape and launching the character upward"
+    },
+
+    "다이빙보드": {
+      "변형되는 순간":
+        "the springboard is visibly bending downward under the character's force",
+
+      "최대 변형 순간":
+        "the springboard forms a dramatic downward arc at the exact instant of maximum elastic deformation",
+
+      "복원되는 순간":
+        "the springboard is rapidly straightening upward and propelling the character into the air"
     },
 
     "탁구공": {
       "변형되는 순간":
-        "the table tennis ball is physically touching the paddle and beginning to deform slightly at the contact point",
+        "the table-tennis ball is beginning to compress at the exact instant it contacts the racket",
+
       "최대 변형 순간":
-        "the real white 40 mm table tennis ball is physically contacting the paddle surface and showing subtle but recognizable temporary compression at the impact point",
+        "the table-tennis ball is visibly but physically plausibly compressed at the exact contact point with the racket",
+
       "복원되는 순간":
-        "the table tennis ball has just left the paddle and is returning to its original spherical shape"
+        "the table-tennis ball is rebounding rapidly from the racket while returning toward its original spherical shape"
     },
 
     "테니스공": {
       "변형되는 순간":
-        "the tennis ball is contacting the racket strings and beginning to compress",
+        "the tennis ball is beginning to compress against the racket strings",
+
       "최대 변형 순간":
-        "the tennis ball is visibly compressed against the racket strings at the instant of maximum deformation",
+        "the tennis ball is visibly flattened against the racket strings at maximum deformation",
+
       "복원되는 순간":
-        "the tennis ball has just rebounded from the racket and is returning to its original spherical shape"
+        "the tennis ball is explosively rebounding away while recovering its original round shape"
     },
 
     "농구공": {
       "변형되는 순간":
-        "the basketball is contacting the floor and beginning to flatten slightly",
+        "the basketball is beginning to flatten at the exact instant it contacts the floor",
+
       "최대 변형 순간":
-        "the basketball is visibly but realistically compressed at the exact floor contact point",
+        "the basketball is visibly compressed at the floor contact point at maximum deformation",
+
       "복원되는 순간":
-        "the basketball is rebounding upward while returning to its original round shape"
+        "the basketball is rebounding upward while rapidly recovering its original round shape"
+    },
+
+    "축구공": {
+      "변형되는 순간":
+        "the soccer ball is beginning to deform at the moment of impact",
+
+      "최대 변형 순간":
+        "the soccer ball is visibly compressed at maximum impact",
+
+      "복원되는 순간":
+        "the soccer ball is rebounding while recovering its original spherical shape"
     },
 
     "고무줄": {
       "변형되는 순간":
         "the rubber band is visibly stretching under tension",
-      "최대 변형 순간":
-        "the rubber band is clearly stretched to its greatest safe extension",
-      "복원되는 순간":
-        "the rubber band is visibly contracting back toward its original length"
-    },
 
-    "활": {
-      "변형되는 순간":
-        "the bow limbs are visibly bending as the bowstring is being pulled",
       "최대 변형 순간":
-        "the bow is at maximum draw with the bow limbs visibly curved under tension",
-      "복원되는 순간":
-        "the bow limbs are rapidly returning toward their original shape after release"
-    },
+        "the rubber band is stretched dramatically but plausibly near its maximum deformation",
 
-    "스펀지": {
-      "변형되는 순간":
-        "the sponge is visibly being compressed by hand",
-      "최대 변형 순간":
-        "the sponge is visibly compressed to its smallest realistic thickness",
       "복원되는 순간":
-        "the sponge is expanding back toward its original shape after the pressure is released"
+        "the rubber band is rapidly contracting toward its original shape"
     },
 
     "용수철": {
       "변형되는 순간":
-        "the spring is visibly being compressed or stretched",
+        "the coil spring is visibly compressing under force",
+
       "최대 변형 순간":
-        "the spring is at its maximum safe compression or extension",
+        "the coil spring is strongly compressed at maximum deformation",
+
       "복원되는 순간":
-        "the spring is visibly returning toward its original length"
+        "the coil spring is rapidly expanding toward its original length"
     }
+  };
+
+  const generic = {
+    "변형되는 순간":
+      "capture the exact instant when the elastic object is visibly deforming under an applied force",
+
+    "최대 변형 순간":
+      "capture the exact dramatic instant of maximum elastic deformation",
+
+    "복원되는 순간":
+      "capture the exact instant when the elastic object is rapidly returning toward its original shape"
   };
 
   return special[elasticItem]?.[moment] ||
@@ -266,32 +313,206 @@ function mapMoment(moment, elasticItem) {
     moment;
 }
 
-function mapStyle(style) {
-  const map = {
-    "REAL PHOTO":
-      "photorealistic professional sports photography, realistic anatomy, realistic clothing, realistic materials, natural lighting, professional camera composition, high-speed freeze-frame, shallow depth of field, high detail",
 
-    "CINEMATIC MOVIE":
-      "cinematic live-action movie still, realistic character, dramatic but natural lighting, film-quality color grading, realistic environment, dynamic camera angle, high detail",
+/* =========================================================
+   5. 비주얼 스타일
+========================================================= */
+
+function mapStyle(style) {
+
+  const map = {
+
+    "DREAM LAB":
+      `
+A spectacular science-fantasy animated world.
+Premium theatrical 3D animation.
+Dreamlike cyan, turquoise and golden lighting.
+Magical glowing elastic-energy particles.
+Whimsical cinematic atmosphere.
+Colorful volumetric light.
+Playful but sophisticated character design.
+The scene should feel like an expensive animated science adventure movie.
+`,
+
+    "ELASTIC IMPACT":
+      `
+A spectacular high-energy animated action scene.
+Premium 3D animation mixed with stylized action-game cinematics.
+Extreme perspective.
+Powerful squash-and-stretch.
+Glowing impact rings.
+Elastic energy trails.
+Explosive particles.
+Dynamic rim lighting.
+The elastic event should feel visually exciting and powerful.
+`,
 
     "3D ANIMATION":
-      "high-end cinematic 3D animation, feature-film quality rendering, detailed original character design, physically based materials, realistic fabric, global illumination, cinematic lighting, polished 3D rendering, detailed environment",
+      `
+PREMIUM THEATRICAL 3D ANIMATED FEATURE-FILM STYLE.
 
-    "COMIC / WEBTOON":
-      "high-quality professional comic and webtoon illustration, detailed character art, dynamic perspective, rich background detail, expressive action, polished rendering",
+Stylized animated characters.
+Clearly non-photographic character design.
+Expressive proportions.
+Appealing stylized faces.
+Soft sculpted 3D skin and hair.
+Richly modeled 3D environments.
+Colorful cinematic lighting.
+Soft global illumination.
+Premium animation rendering.
+Dynamic action poses.
+Playful visual storytelling.
+Beautiful depth and atmosphere.
 
-    "SEMI-REALISTIC":
-      "high-quality semi-realistic stylized rendering, realistic materials, detailed environment, cinematic lighting, slightly stylized proportions, polished visual quality",
+The final result must unmistakably look like a frame
+from a high-budget 3D animated feature film,
+NOT a photograph of real people.
+`,
 
-    "SPORTS CINEMATIC":
-      "professional sports advertising photography, dramatic freeze-frame action, realistic athlete, dynamic low-angle composition, cinematic lighting, shallow depth of field, high detail"
+    "GAME CINEMATIC":
+      `
+A stylized AAA animated game cinematic.
+Highly designed animated characters.
+Heroic action composition.
+Dramatic perspective.
+Richly modeled environment.
+Powerful glowing elastic-energy effects.
+Volumetric lighting.
+Particles and motion streaks.
+Polished next-generation game cutscene aesthetics.
+Clearly stylized rather than photographic.
+`,
+
+    "SPORTS ANIME":
+      `
+A spectacular high-energy sports anime scene.
+Expressive anime character design.
+Cel shading.
+Extreme foreshortening.
+Dynamic speed lines.
+Powerful impact frames.
+Glowing elastic-energy streaks.
+Exaggerated action posing.
+Colorful dramatic lighting.
+The scene should resemble the climax of a premium sports animation.
+`,
+
+    "MOVIE SNAP":
+      `
+An epic animated fantasy-science blockbuster frame.
+Premium animated characters.
+Spectacular cinematic composition.
+Dramatic environment.
+Strong visual storytelling.
+Colorful atmospheric lighting.
+Glowing elastic energy.
+Stylized cinematic action.
+Clearly animated artwork rather than live-action photography.
+`,
+
+    "ULTRA SLOW MOTION":
+      `
+A stylized animated ultra-slow-motion freeze-frame.
+Premium animated character rendering.
+Frozen particles suspended in the air.
+Visible elastic deformation.
+Motion echoes.
+Glowing impact particles.
+Dramatic cinematic lighting.
+Highly detailed animated materials.
+A spectacular time-frozen science moment.
+`
   };
 
   return map[style] ||
-    "photorealistic professional action photography";
+    `
+Premium stylized animated cinematic artwork.
+Clearly animated.
+Clearly non-photographic.
+`;
 }
 
-function buildFinalPrompt({
+
+/* =========================================================
+   6. 스타일 레퍼런스 이미지 읽기
+
+   현재:
+   public/style-references/3d-animation.jpg
+========================================================= */
+
+function loadReferenceImage(photoStyle) {
+
+  const styleMap = {
+
+    "3D ANIMATION":
+      "3d-animation.jpg"
+
+  };
+
+  const fileName =
+    styleMap[photoStyle];
+
+  if (!fileName) {
+
+    console.log(
+      "NO STYLE REFERENCE REQUIRED FOR:",
+      photoStyle
+    );
+
+    return null;
+  }
+
+  const filePath = path.join(
+    process.cwd(),
+    "public",
+    "style-references",
+    fileName
+  );
+
+  console.log(
+    "LOOKING FOR STYLE REFERENCE:",
+    filePath
+  );
+
+  if (!fs.existsSync(filePath)) {
+
+    console.error(
+      "REFERENCE IMAGE NOT FOUND:",
+      filePath
+    );
+
+    return null;
+  }
+
+  const imageBuffer =
+    fs.readFileSync(filePath);
+
+  console.log(
+    "STYLE REFERENCE:",
+    fileName
+  );
+
+  console.log(
+    "REFERENCE IMAGE SIZE:",
+    imageBuffer.length
+  );
+
+  return {
+
+    mimeType:
+      "image/jpeg",
+
+    data:
+      imageBuffer.toString("base64")
+  };
+}
+
+
+/* =========================================================
+   7. 최종 Gemini 프롬프트 생성
+========================================================= */
+
+function buildPrompt({
   who,
   elasticItem,
   action,
@@ -299,117 +520,284 @@ function buildFinalPrompt({
   moment,
   photoStyle
 }) {
-  const whoDesc = mapWho(who);
-  const objectDesc = mapElasticObject(elasticItem);
-  const actionDesc = mapAction(action);
-  const placeDesc = mapPlace(place);
-  const momentDesc = mapMoment(moment, elasticItem);
-  const styleDesc = mapStyle(photoStyle);
 
-  const isSmallObject = [
-    "탁구공",
-    "테니스공",
-    "고무줄",
-    "머리끈",
-    "용수철",
-    "스펀지"
-  ].includes(elasticItem);
+  const whoDesc =
+    mapWho(who);
 
-  const isLargeObject = [
-    "트램펄린",
-    "다이빙보드",
-    "장대높이뛰기 장대"
-  ].includes(elasticItem);
+  const objectDesc =
+    mapObject(elasticItem);
 
-  let cameraDesc =
-    "Use a medium-wide environmental action shot that clearly shows the person, the elastic object, the action, and the location.";
+  const placeDesc =
+    mapPlace(place);
 
-  if (isSmallObject) {
-    cameraDesc =
-      "Use a medium close-up or macro action composition that clearly shows the elastic object, the contact point, and enough of the person's action and surroundings to understand the scene.";
-  }
+  const momentDesc =
+    mapMoment(
+      moment,
+      elasticItem
+    );
 
-  if (isLargeObject) {
-    cameraDesc =
-      "Use a wide or medium-wide full-body action shot. The entire elastic object and the person's interaction with it must be clearly visible.";
-  }
+  const styleDesc =
+    mapStyle(photoStyle);
+
 
   return `
-CAMERA AND COMPOSITION:
-${cameraDesc}
+IMPORTANT CREATIVE DIRECTION:
 
-Do not create a portrait, headshot, face close-up, beauty photo, or upper-body portrait.
-The person's face must NOT dominate the frame.
+THIS IS AN ANIMATED ARTWORK.
 
-MAIN ELASTIC OBJECT:
-${objectDesc}
+THIS IS NOT LIVE-ACTION PHOTOGRAPHY.
 
-EXACT PHYSICS MOMENT:
-${momentDesc}
+Do NOT create a realistic photograph.
+Do NOT create a real human photographed by a camera.
 
-ACTION:
-${actionDesc}
+Build the entire scene from the beginning
+as a designed animated world.
 
-ENVIRONMENT:
-${placeDesc}
+==================================================
+STYLE REFERENCE
+==================================================
 
-PERSON:
-${whoDesc}
+If a reference image is attached,
+use the attached image ONLY as a VISUAL STYLE REFERENCE.
 
-VISUAL STYLE:
+Study its:
+
+- character stylization
+- animation rendering
+- facial stylization
+- proportions
+- materials
+- shading
+- lighting
+- color palette
+- cinematic atmosphere
+- degree of exaggeration
+- overall visual energy
+
+DO NOT copy:
+
+- the exact person
+- exact face
+- exact pose
+- clothing
+- elastic object
+- background
+- location
+- composition
+
+Create an entirely NEW scene.
+
+REFERENCE IMAGE = HOW THE WORLD LOOKS.
+
+STUDENT SELECTIONS = WHAT MUST APPEAR.
+
+==================================================
+SELECTED VISUAL STYLE
+==================================================
+
 ${styleDesc}
 
-HARD VISUAL REQUIREMENTS:
-- The selected elastic object must be clearly recognizable.
-- The selected action must be visually obvious.
-- The selected location must be visually recognizable.
-- The elastic deformation or recovery must be one of the main visual features.
-- The person must match the requested age group and role.
-- The image must look like one coherent real scene, not a collage.
-- Preserve realistic physical proportions.
-- Preserve realistic material behavior.
-- Do not omit the elastic object.
-- Do not omit the environment.
-- Do not replace the scene with a portrait.
+==================================================
+CHARACTER
+==================================================
 
-DO NOT INCLUDE:
-- physics labels
-- equations
-- arrows
-- diagrams
-- UI elements
-- captions
-- text inside the generated image
-- stick figures
-- geometric representations
-- abstract stage backgrounds
-- generic portrait backgrounds
+${whoDesc}
+
+The character must visibly match this age/category.
+
+Show the character as a FULL-BODY
+or THREE-QUARTER-BODY animated action character.
+
+Do not create a portrait.
+
+The character must physically interact
+with the selected elastic object.
+
+==================================================
+ELASTIC OBJECT
+==================================================
+
+${objectDesc}
+
+THIS OBJECT MUST BE CLEARLY VISIBLE.
+
+Do not replace it with another object.
+
+Do not hide it behind the character.
+
+The elastic object should be one of the
+main visual focal points of the entire image.
+
+==================================================
+ACTION
+==================================================
+
+The character is performing this action:
+
+${action}
+
+The pose must clearly communicate this action.
+
+Avoid standing still.
+
+Use a dynamic animated action pose.
+
+==================================================
+LOCATION
+==================================================
+
+${placeDesc}
+
+The environment must be immediately recognizable.
+
+Do not use:
+
+- generic backgrounds
+- empty rooms
+- abstract spaces
+- dark voids
+
+Include recognizable environmental landmarks.
+
+==================================================
+ELASTIC SCIENCE MOMENT
+==================================================
+
+${momentDesc}
+
+THIS IS THE HERO MOMENT OF THE IMAGE.
+
+Make the deformation visually obvious enough
+for a middle-school science student to notice.
+
+However, preserve the actual identity
+and physical structure of the object.
+
+==================================================
+MAKE ELASTICITY FEEL AWESOME
+==================================================
+
+Transform the scientific moment into
+a spectacular animated visual event.
+
+Use:
+
+- dynamic perspective
+- cinematic composition
+- squash and stretch
+- motion arcs
+- glowing elastic-energy trails
+- luminous particles
+- impact rings
+- stylized shockwave effects
+- colorful rim lighting
+- dramatic environmental lighting
+- exaggerated but believable movement
+- strong foreground / midground / background depth
+
+The elastic force may be represented through
+stylized glowing energy effects.
+
+BUT:
+
+The physical deformation itself must remain
+scientifically understandable.
+
+The viewer should immediately think:
+
+"WOW! I can actually SEE elasticity happening!"
+
+==================================================
+VISUAL PRIORITY
+==================================================
+
+1. ELASTIC DEFORMATION MOMENT
+2. ELASTIC OBJECT
+3. ACTION
+4. CHARACTER
+5. LOCATION
+6. DECORATIVE EFFECTS
+
+All six selected scene conditions must
+be visually represented.
+
+==================================================
+STRICTLY FORBIDDEN
+==================================================
+
+NO photorealistic humans.
+
+NO live-action photography.
+
+NO documentary photography.
+
+NO realistic sports photography.
+
+NO camera snapshot aesthetic.
+
+NO portrait photography.
+
+NO headshot.
+
+NO static character pose.
+
+NO generic empty background.
+
+NO physics diagram.
+
+NO stick figure.
+
+NO flat educational clip art.
+
+NO text.
+
+NO labels.
+
+NO equations.
+
+NO arrows.
+
+NO UI elements.
+
+NO watermark.
+
+Create ONE polished,
+high-budget animated cinematic frame.
 `;
 }
 
-function extractBase64Image(responseJson) {
-  const candidates =
-    responseJson?.candidates || [];
 
-  for (const candidate of candidates) {
+/* =========================================================
+   8. Gemini 응답에서 이미지 추출
+========================================================= */
+
+function extractImage(json) {
+
+  const candidates =
+    json?.candidates || [];
+
+  for (
+    const candidate of candidates
+  ) {
+
     const parts =
       candidate?.content?.parts || [];
 
-    for (const part of parts) {
-      if (part?.inlineData?.data) {
+    for (
+      const part of parts
+    ) {
+
+      if (
+        part?.inlineData?.data
+      ) {
+
         return {
-          data: part.inlineData.data,
+
+          data:
+            part.inlineData.data,
+
           mimeType:
             part.inlineData.mimeType ||
-            "image/png"
-        };
-      }
-
-      if (part?.inline_data?.data) {
-        return {
-          data: part.inline_data.data,
-          mimeType:
-            part.inline_data.mime_type ||
             "image/png"
         };
       }
@@ -419,7 +807,18 @@ function extractBase64Image(responseJson) {
   return null;
 }
 
-export default async function handler(req, res) {
+
+/* =========================================================
+   9. Vercel API Handler
+========================================================= */
+
+export default async function handler(
+  req,
+  res
+) {
+
+  /* ---------- CORS ---------- */
+
   res.setHeader(
     "Access-Control-Allow-Origin",
     "*"
@@ -435,42 +834,93 @@ export default async function handler(req, res) {
     "Content-Type"
   );
 
-  if (req.method === "OPTIONS") {
+
+  /* ---------- OPTIONS ---------- */
+
+  if (
+    req.method === "OPTIONS"
+  ) {
+
     res.statusCode = 204;
+
     res.end();
+
     return;
   }
 
-  if (req.method !== "POST") {
-    return res.status(405).json({
-      error:
-        "Only POST requests are allowed"
-    });
+
+  /* ---------- POST ONLY ---------- */
+
+  if (
+    req.method !== "POST"
+  ) {
+
+    return res
+      .status(405)
+      .json({
+
+        error:
+          "Only POST requests are allowed"
+
+      });
   }
 
+
   try {
+
+    /* =====================================================
+       API KEY
+    ===================================================== */
+
     const apiKey =
       process.env.GEMINI_API_KEY;
 
+
     if (!apiKey) {
+
       console.error(
         "GEMINI_API_KEY IS MISSING"
       );
 
-      return res.status(500).json({
-        error:
-          "GEMINI_API_KEY is not configured"
-      });
+      return res
+        .status(500)
+        .json({
+
+          error:
+            "GEMINI_API_KEY is not configured"
+
+        });
     }
 
+
+    /* =====================================================
+       학생 선택값
+    ===================================================== */
+
     const {
+
       who,
       elasticItem,
       action,
       place,
       moment,
       photoStyle
+
     } = req.body || {};
+
+
+    console.log(
+      "SCENE SELECTIONS:",
+      {
+        who,
+        elasticItem,
+        action,
+        place,
+        moment,
+        photoStyle
+      }
+    );
+
 
     if (
       !who ||
@@ -480,132 +930,255 @@ export default async function handler(req, res) {
       !moment ||
       !photoStyle
     ) {
-      return res.status(400).json({
-        error:
-          "Scene information is missing"
-      });
+
+      return res
+        .status(400)
+        .json({
+
+          error:
+            "Scene information is missing"
+
+        });
     }
 
+
+    /* =====================================================
+       프롬프트 생성
+    ===================================================== */
+
     const finalImagePrompt =
-      buildFinalPrompt({
+      buildPrompt({
+
         who,
         elasticItem,
         action,
         place,
         moment,
         photoStyle
+
       });
 
-    console.log(
-      "===== FINAL IMAGE GENERATION DATA ====="
-    );
 
-    console.log("WHO:", who);
+    /* =====================================================
+       스타일 레퍼런스
+    ===================================================== */
+
+    const referenceImage =
+      loadReferenceImage(
+        photoStyle
+      );
+
+
     console.log(
-      "ELASTIC OBJECT:",
-      elasticItem
-    );
-    console.log("ACTION:", action);
-    console.log("PLACE:", place);
-    console.log(
-      "ELASTIC MOMENT:",
-      moment
-    );
-    console.log(
-      "VISUAL STYLE:",
+      "SELECTED STYLE:",
       photoStyle
     );
 
+
     console.log(
-      "IMAGE MODEL:",
-      MODEL_ID
+      "REFERENCE IMAGE ATTACHED:",
+      Boolean(referenceImage)
     );
+
 
     console.log(
       "FINAL IMAGE PROMPT:",
       finalImagePrompt
     );
 
+
+    /* =====================================================
+       Gemini에 전달할 parts
+    ===================================================== */
+
+    const parts = [];
+
+
+    /*
+      참고 이미지가 있으면
+      이미지부터 Gemini에 전달
+    */
+
+    if (
+      referenceImage
+    ) {
+
+      parts.push({
+
+        inlineData: {
+
+          mimeType:
+            referenceImage.mimeType,
+
+          data:
+            referenceImage.data
+        }
+
+      });
+    }
+
+
+    /*
+      그 다음 텍스트 프롬프트 전달
+    */
+
+    parts.push({
+
+      text:
+        finalImagePrompt
+
+    });
+
+
+    /* =====================================================
+       Gemini API 호출
+    ===================================================== */
+
     const endpoint =
       `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+
+    console.log(
+      "CALLING GEMINI MODEL:",
+      MODEL_ID
+    );
+
 
     const googleResponse =
       await fetch(
         endpoint,
         {
-          method: "POST",
+
+          method:
+            "POST",
 
           headers: {
+
             "Content-Type":
               "application/json"
+
           },
 
-          body: JSON.stringify({
-            contents: [
-              {
-                role: "user",
-                parts: [
-                  {
-                    text:
-                      finalImagePrompt
-                  }
-                ]
-              }
-            ],
+          body:
+            JSON.stringify({
 
-            generationConfig: {
-              responseModalities: [
-                "IMAGE"
-              ]
-            }
-          })
+              contents: [
+
+                {
+
+                  role:
+                    "user",
+
+                  parts
+
+                }
+
+              ],
+
+              generationConfig: {
+
+                responseModalities: [
+                  "IMAGE"
+                ]
+
+              }
+
+            })
+
         }
       );
+
+
+    /* =====================================================
+       Google 응답
+    ===================================================== */
 
     const responseText =
       await googleResponse.text();
 
-    let responseJson;
+
+    let responseJson =
+      null;
+
 
     try {
+
       responseJson =
-        JSON.parse(responseText);
+        JSON.parse(
+          responseText
+        );
+
     } catch {
-      responseJson = null;
+
+      console.error(
+        "GOOGLE RESPONSE WAS NOT JSON"
+      );
+
     }
 
-    if (!googleResponse.ok) {
+
+    /* =====================================================
+       API 오류
+    ===================================================== */
+
+    if (
+      !googleResponse.ok
+    ) {
+
       console.error(
         "GOOGLE IMAGE GENERATION FAILED:",
         googleResponse.status,
         responseText
       );
 
-      return res.status(
-        googleResponse.status
-      ).json({
-        error:
-          responseJson?.error?.message ||
-          "Gemini image generation failed"
-      });
+
+      return res
+        .status(
+          googleResponse.status
+        )
+        .json({
+
+          error:
+            responseJson
+              ?.error
+              ?.message ||
+            "Gemini image generation failed"
+
+        });
     }
 
+
+    /* =====================================================
+       이미지 추출
+    ===================================================== */
+
     const image =
-      extractBase64Image(
+      extractImage(
         responseJson
       );
 
-    if (!image?.data) {
+
+    if (!image) {
+
       console.error(
-        "NO IMAGE DATA RETURNED:",
-        responseText
+        "NO IMAGE FOUND IN GEMINI RESPONSE"
       );
 
-      return res.status(500).json({
-        error:
-          "Gemini returned no image data"
-      });
+
+      return res
+        .status(500)
+        .json({
+
+          error:
+            "Gemini returned no image"
+
+        });
     }
+
+
+    /* =====================================================
+       Base64 → Buffer
+    ===================================================== */
 
     const imageBuffer =
       Buffer.from(
@@ -613,55 +1186,69 @@ export default async function handler(req, res) {
         "base64"
       );
 
+
     console.log(
       "IMAGE SOURCE: GOOGLE GEMINI"
     );
 
-    console.log(
-      "IMAGE MIME TYPE:",
-      image.mimeType
-    );
 
     console.log(
       "IMAGE BUFFER SIZE:",
       imageBuffer.length
     );
 
-    res.statusCode = 200;
+
+    /* =====================================================
+       브라우저에 이미지 반환
+    ===================================================== */
+
+    res.statusCode =
+      200;
+
 
     res.setHeader(
       "Content-Type",
       image.mimeType
     );
 
+
     res.setHeader(
       "Content-Length",
       imageBuffer.length
     );
+
 
     res.setHeader(
       "Cache-Control",
       "no-store"
     );
 
-    res.setHeader(
-      "X-Image-Source",
-      "GOOGLE-GEMINI"
+
+    res.end(
+      imageBuffer
     );
 
-    res.end(imageBuffer);
+
     return;
 
+
   } catch (error) {
+
     console.error(
-      "GEMINI SERVER ERROR:",
-      error?.message || error
+      "IMAGE GENERATION SERVER ERROR:",
+      error?.message ||
+      error
     );
 
-    return res.status(500).json({
-      error:
-        error?.message ||
-        "Image generation failed"
-    });
+
+    return res
+      .status(500)
+      .json({
+
+        error:
+          error?.message ||
+          "Image generation failed"
+
+      });
   }
 }
